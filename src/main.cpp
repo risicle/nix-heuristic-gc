@@ -1,39 +1,47 @@
 #include <pybind11/pybind11.h>
+#include <pybind11/stl.h>
+
+#define SYSTEM "x86_64-linux"
+#include <nix/store-api.hh>
+#include <nix/gc-store.hh>
+#include <nix/store-cast.hh>
+#undef SYSTEM
 
 #define STRINGIFY(x) #x
 #define MACRO_STRINGIFY(x) STRINGIFY(x)
 
-int add(int i, int j) {
-    return i + j;
-}
-
 namespace py = pybind11;
 
-PYBIND11_MODULE(python_example, m) {
+// struct GCResultsTuple : public nix::GCResults {
+//     operator std::tuple<nix::PathSet const&, uint64_t> () {
+//         return std::tie(this->paths, this->bytesFreed);
+//     };
+// };
+
+PYBIND11_MODULE(libstore_wrapper, m) {
     m.doc() = R"pbdoc(
-        Pybind11 example plugin
-        -----------------------
-
-        .. currentmodule:: python_example
-
-        .. autosummary::
-           :toctree: _generate
-
-           add
-           subtract
+        libnixstore wrapper
+        -------------------
     )pbdoc";
 
-    m.def("add", &add, R"pbdoc(
-        Add two numbers
+    py::class_<nix::StorePath>(m, "StorePath")
+        .def(py::init<const std::string &>())
+        .def("__str__", &nix::StorePath::to_string);
 
-        Some other explanation about the add function.
-    )pbdoc");
+    py::class_<nix::Store, std::shared_ptr<nix::Store>>(m, "Store")
+        .def(py::init([](){
+            return nix::openStore("daemon");
+        }))
+        .def("collectGarbage", [](nix::Store &store){
+            nix::GCOptions options;
+            options.action = nix::GCOptions::GCAction::gcReturnDead;
 
-    m.def("subtract", [](int i, int j) { return i - j; }, R"pbdoc(
-        Subtract two numbers
+            nix::GCResults results;
 
-        Some other explanation about the subtract function.
-    )pbdoc");
+            nix::require<nix::GcStore>(store).collectGarbage(options, results);
+
+            return std::make_tuple(std::move(results.paths), results.bytesFreed);
+        });
 
 #ifdef VERSION_INFO
     m.attr("__version__") = MACRO_STRINGIFY(VERSION_INFO);
