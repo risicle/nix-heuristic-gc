@@ -2,9 +2,10 @@
 #include <pybind11/stl.h>
 
 #define SYSTEM "x86_64-linux"
-#include <nix/store-api.hh>
+#include <nix/callback.hh>
 #include <nix/gc-store.hh>
 #include <nix/store-cast.hh>
+#include <nix/store-api.hh>
 #undef SYSTEM
 
 #define STRINGIFY(x) #x
@@ -12,11 +13,6 @@
 
 namespace py = pybind11;
 
-// struct GCResultsTuple : public nix::GCResults {
-//     operator std::tuple<nix::PathSet const&, uint64_t> () {
-//         return std::tie(this->paths, this->bytesFreed);
-//     };
-// };
 
 PYBIND11_MODULE(libstore_wrapper, m) {
     m.doc() = R"pbdoc(
@@ -24,12 +20,25 @@ PYBIND11_MODULE(libstore_wrapper, m) {
         -------------------
     )pbdoc";
 
+    auto get_event_loop = py::module_::import("asyncio.events").attr("get_event_loop");
+    auto RuntimeError = py::module_::import("builtins").attr("RuntimeError");
+
     py::class_<nix::StorePath>(m, "StorePath")
         .def(py::init<const std::string &>())
         .def("__str__", &nix::StorePath::to_string)
         .def("__repr__", [](const nix::StorePath& store_path){
             return "StorePath(\"" + std::string(store_path.to_string()) + "\")";
         });
+
+    py::class_<nix::ValidPathInfo>(m, "ValidPathInfo")
+        .def("__repr__", [](const nix::ValidPathInfo& path_info){
+            return "ValidPathInfo(\"" + std::string(path_info.path.to_string()) + "\")";
+        })
+        .def_readonly("path", &nix::ValidPathInfo::path)
+        .def_readonly("references", &nix::ValidPathInfo::references)
+        .def_readonly("registration_time", &nix::ValidPathInfo::registrationTime)
+        .def_readonly("ultimate", &nix::ValidPathInfo::ultimate)
+        .def_readonly("nar_size", &nix::ValidPathInfo::narSize);
 
     py::enum_<nix::GCOptions::GCAction>(m, "GCAction")
         .value("GCReturnLive", nix::GCOptions::GCAction::gcReturnLive)
@@ -63,8 +72,7 @@ PYBIND11_MODULE(libstore_wrapper, m) {
             },
             py::arg("action") = nix::GCOptions::GCAction::gcReturnDead,
             py::arg("paths_to_delete") = py::none()
-        )
-        .def(
+        ).def(
             "query_referrers",
             [](
                 nix::Store& store,
@@ -76,6 +84,39 @@ PYBIND11_MODULE(libstore_wrapper, m) {
             },
             py::arg("store_path"),
             py::return_value_policy::take_ownership
+        ).def(
+            "query_path_info",
+            [](
+                nix::Store& store,
+                nix::StorePath store_path
+            ){
+                return store.queryPathInfo(store_path).get_ptr();
+            },
+            py::arg("store_path")
+        ).def(
+            "query_path_info_async",
+            [get_event_loop, RuntimeError](
+                nix::Store& store,
+                nix::StorePath store_path
+            ){
+                auto pyfuture = get_event_loop().attr("create_future")();
+
+                store.queryPathInfo(
+                    store_path,
+                    nix::Callback<nix::ref<const nix::ValidPathInfo>>([pyfuture, RuntimeError](
+                        std::future<nix::ref<const nix::ValidPathInfo>> f_vpi
+                    ) -> void {
+                        try {
+                            pyfuture.attr("set_result")(f_vpi.get().get_ptr());
+                        } catch (const std::exception& e) {
+                            // pybind11 doesn't convert exception *arguments* itself
+                            pyfuture.attr("set_exception")(RuntimeError(e.what()));
+                        }
+                    })
+                );
+                return pyfuture;
+            },
+            py::arg("store_path")
         ).def(
             "query_substitutable_paths",
             &nix::Store::querySubstitutablePaths
