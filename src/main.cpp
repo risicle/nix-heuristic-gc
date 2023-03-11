@@ -120,6 +120,9 @@ PYBIND11_MODULE(libstore_wrapper, m) {
         ).def(
             "query_substitutable_paths",
             &nix::Store::querySubstitutablePaths
+        ).def(
+            "topo_sort_paths",
+            &nix::Store::topoSortPaths
         );
 
 #ifdef VERSION_INFO
