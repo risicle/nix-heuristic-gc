@@ -30,7 +30,7 @@ PYBIND11_MODULE(libstore_wrapper, m) {
             return "StorePath(\"" + std::string(store_path.to_string()) + "\")";
         });
 
-    py::class_<nix::ValidPathInfo>(m, "ValidPathInfo")
+    py::class_<nix::ValidPathInfo, std::shared_ptr<nix::ValidPathInfo>>(m, "ValidPathInfo")
         .def("__repr__", [](const nix::ValidPathInfo& path_info){
             return "ValidPathInfo(\"" + std::string(path_info.path.to_string()) + "\")";
         })
