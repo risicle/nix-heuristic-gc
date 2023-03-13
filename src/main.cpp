@@ -23,6 +23,10 @@ PYBIND11_MODULE(libstore_wrapper, m) {
     auto get_event_loop = py::module_::import("asyncio.events").attr("get_event_loop");
     auto RuntimeError = py::module_::import("builtins").attr("RuntimeError");
 
+    m.def("get_nix_store_path", [](){
+        return nix::settings.nixStore;
+    });
+
     py::class_<nix::StorePath>(m, "StorePath")
         .def(py::init<const std::string &>())
         .def("__str__", &nix::StorePath::to_string)

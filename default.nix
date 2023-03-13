@@ -14,6 +14,7 @@
     buildInputs = [
       pythonPackages.pybind11
       pythonPackages.setuptools
+      pythonPackages.retworkx
       pkgs.boost
       pkgs.nix
     ] ++ pkgs.lib.optionals forTest [
