@@ -57,3 +57,26 @@ class GarbageGraph:
         for i in self.graph.node_indices():
             if self.graph.in_degree(i) == 0:
                 heapq.heappush(self.heap, (self.graph[i].max_atime, i))
+
+    def remove_heap_root(self):
+        atime, idx = heapq.heappop(self.heap)
+        node_data = self.graph[idx]
+        ref_idxs = tuple(t for _, t, _ in self.graph.out_edges(idx))
+        self.graph.remove_node(idx)
+        del self.path_index_mapping[node_data.path]
+
+        for ref_idx in ref_idxs:
+            if self.graph.in_degree(ref_idx) == 0:
+                heapq.heappush(self.heap, (self.graph[ref_idx].max_atime, ref_idx))
+
+        return node_data
+
+    def remove_nar_bytes(self, nar_bytes):
+        removed_node_data = []
+        removed_bytes = 0
+        while removed_bytes < nar_bytes:
+            node_data = self.remove_heap_root()
+            removed_bytes += node_data.nar_size
+            removed_node_data.append(node_data)
+
+        return removed_node_data
