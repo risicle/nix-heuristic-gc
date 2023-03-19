@@ -27,10 +27,10 @@ PYBIND11_MODULE(libstore_wrapper, m) {
     m.def("get_nix_store_path", [](){
         return nix::settings.nixStore;
     });
-    m.def("get_gc_keep_derivations", [](){
+    m.def("get_gc_keep_derivations", []() -> bool {
         return nix::settings.gcKeepDerivations;
     });
-    m.def("get_gc_keep_outputs", [](){
+    m.def("get_gc_keep_outputs", []() -> bool {
         return nix::settings.gcKeepOutputs;
     });
 
@@ -100,6 +100,15 @@ PYBIND11_MODULE(libstore_wrapper, m) {
             },
             py::arg("store_path"),
             py::return_value_policy::take_ownership
+        ).def(
+            "query_derivation_outputs",
+            [](
+                nix::Store& store,
+                nix::StorePath store_path
+            ) {
+                return store.queryDerivationOutputs(store_path);
+            },
+            py::arg("store_path")
         ).def(
             "query_path_info",
             [](

@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+import enum
 import heapq
 from os.path import (
     join as path_join,
@@ -20,6 +21,11 @@ class GarbageGraph:
         max_atime: int
         substitutable: Optional[bool]
 
+    class EdgeType(enum.Enum):
+        REFERENCE = enum.auto()
+        DRV_OUTPUT = enum.auto()
+        OUTPUT_DRV = enum.auto()
+
     def __init__(
         self,
         store:libstore.Store,
@@ -30,7 +36,7 @@ class GarbageGraph:
 
         self.store = store
         garbage_path_set, _ = self.store.collect_garbage(
-            action=self.store.GCAction.GCReturnDead,
+            action=libstore.GCAction.GCReturnDead,
         )
 
         garbage_store_path_set = {
@@ -40,7 +46,7 @@ class GarbageGraph:
         if penalize_substitutable:
             substitutable_paths = self.store.query_substitutable_paths(garbage_store_path_set)
 
-        self.graph = rx.PyDAG(multigraph=False)
+        self.graph = rx.PyDiGraph()
         self.path_index_mapping = {}
         self.invalid_paths = set()
 
@@ -62,8 +68,35 @@ class GarbageGraph:
                 for ref_sp in path_info.references:
                     ref_node_index = self.path_index_mapping.get(str(ref_sp))
                     if ref_node_index is not None:
-                        self.graph.add_edge(node_index, ref_node_index, None)
+                        self.graph.add_edge(
+                            node_index,
+                            ref_node_index,
+                            self.EdgeType.REFERENCE,
+                        )
                     # else path being referenced is not garbage and we can ignore it
+
+        # topo_sort_paths doesn't respect these pseudo-references so we need to
+        # add these edges on a second pass
+        if libstore.get_gc_keep_derivations() or libstore.get_gc_keep_outputs():
+            for path, idx in self.path_index_mapping.items():
+                if path.endswith(".drv"):
+                    for output in self.store.query_derivation_outputs(
+                        libstore.StorePath(path),
+                    ):
+                        output_idx = self.path_index_mapping.get(str(output))
+                        if output_idx is not None:
+                            if libstore.get_gc_keep_derivations():
+                                self.graph.add_edge(
+                                    output_idx,
+                                    idx,
+                                    self.EdgeType.OUTPUT_DRV,
+                                )
+                            if libstore.get_gc_keep_outputs():
+                                self.graph.add_edge(
+                                    idx,
+                                    output_idx,
+                                    self.EdgeType.DRV_OUTPUT,
+                                )
 
         self.heap = []
         for i in self.graph.node_indices():
