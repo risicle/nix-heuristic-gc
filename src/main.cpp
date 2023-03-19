@@ -60,12 +60,12 @@ PYBIND11_MODULE(libstore_wrapper, m) {
             [](
                 nix::Store& store,
                 nix::GCOptions::GCAction action,
-                std::optional<nix::StorePathSet*> paths_to_delete
+                std::optional<nix::StorePathSet> paths_to_delete
             ){
                 nix::GCOptions options;
                 options.action = action;
                 if (paths_to_delete.has_value()) {
-                    options.pathsToDelete = std::move(*paths_to_delete.value());
+                    options.pathsToDelete = std::move(paths_to_delete.value());
                 }
 
                 nix::GCResults results;
