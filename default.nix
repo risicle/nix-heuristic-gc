@@ -12,6 +12,7 @@
 #     ];
 
     buildInputs = [
+      pythonPackages.pint
       pythonPackages.pybind11
       pythonPackages.setuptools
       pythonPackages.retworkx
@@ -19,6 +20,9 @@
       pkgs.nix
     ] ++ pkgs.lib.optionals forTest [
     ] ++ pkgs.lib.optionals forDev [
+      pythonPackages.ipython
+      pythonPackages.matplotlib
+      pkgs.pwndbg
     ];
   };
 }

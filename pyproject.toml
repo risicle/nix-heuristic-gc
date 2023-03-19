@@ -3,6 +3,7 @@ requires = [
     "setuptools>=42",
     "pybind11>=2.10.0",
     "retworkx",
+    "pint",
 ]
 build-backend = "setuptools.build_meta"
 
