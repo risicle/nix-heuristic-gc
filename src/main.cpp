@@ -27,6 +27,12 @@ PYBIND11_MODULE(libstore_wrapper, m) {
     m.def("get_nix_store_path", [](){
         return nix::settings.nixStore;
     });
+    m.def("get_gc_keep_derivations", [](){
+        return nix::settings.gcKeepDerivations;
+    });
+    m.def("get_gc_keep_outputs", [](){
+        return nix::settings.gcKeepOutputs;
+    });
 
     py::class_<nix::StorePath>(m, "StorePath")
         .def(py::init<const std::string &>())
