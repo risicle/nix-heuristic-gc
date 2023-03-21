@@ -1,8 +1,14 @@
 
 def main():
     import argparse
+    import logging
     from pint import UnitRegistry
     from nagcpy import nix_heuristic_gc
+
+    logging.basicConfig(
+        level=logging.INFO,
+        format="%(asctime)s:%(levelname)s:%(name)s: %(message)s",
+    )
 
     parser = argparse.ArgumentParser()
     parser.add_argument("--penalize-drvs", default=True, action=argparse.BooleanOptionalAction)
