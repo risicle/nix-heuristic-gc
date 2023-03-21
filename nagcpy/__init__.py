@@ -1,5 +1,7 @@
 import logging
 
+from humanfriendly import format_size
+
 import libstore_wrapper as libstore
 
 from nagcpy.graph import GarbageGraph
@@ -23,10 +25,10 @@ def nix_heuristic_gc(
     to_reclaim = garbage_graph.remove_nar_bytes(reclaim_bytes)
 
     logger.info(
-        "requesting deletion of %(count)s store paths, total nar_size %(size)s bytes",
+        "requesting deletion of %(count)s store paths, total nar_size %(size)s",
         {
             "count": len(to_reclaim),
-            "size": sum(spn.nar_size for spn in to_reclaim),
+            "size": format_size(sum(spn.nar_size for spn in to_reclaim), binary=True),
         },
     )
 
@@ -37,4 +39,4 @@ def nix_heuristic_gc(
                 libstore.StorePath(spn.path) for spn in to_reclaim
             },
         )
-        logger.info("freed %(size)s bytes", {"size": bytes_freed})
+        logger.info("freed %(size)s", {"size": format_size(bytes_freed, binary=True)})

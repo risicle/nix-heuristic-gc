@@ -12,7 +12,7 @@
 #     ];
 
     buildInputs = [
-      pythonPackages.pint
+      pythonPackages.humanfriendly
       pythonPackages.pybind11
       pythonPackages.setuptools
       pythonPackages.retworkx

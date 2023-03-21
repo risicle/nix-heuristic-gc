@@ -2,7 +2,7 @@
 def main():
     import argparse
     import logging
-    from pint import UnitRegistry
+    from humanfriendly import parse_size
     from nagcpy import nix_heuristic_gc
 
     logging.basicConfig(
@@ -18,8 +18,7 @@ def main():
 
     parsed = vars(parser.parse_args())
 
-    ur = UnitRegistry()
-    parsed["reclaim_bytes"] = int(ur(parsed["reclaim_bytes"]).m_as("B"))
+    parsed["reclaim_bytes"] = parse_size(parsed["reclaim_bytes"])
 
     nix_heuristic_gc(**parsed)
 
