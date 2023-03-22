@@ -11,7 +11,7 @@ from typing import Optional
 import libstore_wrapper as libstore
 import retworkx as rx
 
-from nagcpy.atime import path_max_atime
+from nagcpy.atime import path_stat_agg
 
 
 logger = logging.getLogger(__name__)
@@ -27,6 +27,7 @@ class GarbageGraph:
         path: str
         nar_size: int
         _max_atime:Optional[int] = None
+        _inodes:Optional[int] = None
         _substitutable:Optional[int] = None
 
     class EdgeType(enum.Enum):
@@ -39,6 +40,7 @@ class GarbageGraph:
         store:libstore.Store,
         penalize_substitutable:Optional[float]=None,
         penalize_drvs:Optional[float]=None,
+        penalize_inodes:Optional[float]=None,
     ):
         self.store = store
 
@@ -46,12 +48,21 @@ class GarbageGraph:
             __slots__ = ()
 
             @property
-            def max_atime(_self):
+            def inodes(_self):
                 if _self._max_atime is None:
-                    _self._max_atime = int(path_max_atime(path_join(
+                    _self._max_atime, _self._inodes = path_stat_agg(path_join(
                         _nix_store_path,
                         _self.path,
-                    )))
+                    ))
+                return _self._inodes
+
+            @property
+            def max_atime(_self):
+                if _self._inodes is None:
+                    _self._max_atime, _self._inodes = path_stat_agg(path_join(
+                        _nix_store_path,
+                        _self.path,
+                    ))
                 return _self._max_atime
 
             @property
@@ -69,6 +80,11 @@ class GarbageGraph:
                     s -= penalize_drvs
                 if penalize_substitutable is not None and _self.substitutable:
                     s -= penalize_substitutable
+                if penalize_inodes is not None:
+                    # divide by nar_size - we want to free many inodes before
+                    # we hit the limit, and the limit is based on nar_size.
+                    # add one to nar_size to avoid zero-division
+                    s -= penalize_inodes * _self.inodes / (_self.nar_size+1)
                 return s
 
         self.StorePathNode = StorePathNode
