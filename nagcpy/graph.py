@@ -41,6 +41,7 @@ class GarbageGraph:
         penalize_substitutable:Optional[float]=None,
         penalize_drvs:Optional[float]=None,
         penalize_inodes:Optional[float]=None,
+        penalize_size:Optional[float]=None,
     ):
         self.store = store
 
@@ -85,6 +86,8 @@ class GarbageGraph:
                     # we hit the limit, and the limit is based on nar_size.
                     # add one to nar_size to avoid zero-division
                     s -= penalize_inodes * _self.inodes / (_self.nar_size+1)
+                if penalize_size is not None:
+                    s -= penalize_size *_self.nar_size
                 return s
 
         self.StorePathNode = StorePathNode
