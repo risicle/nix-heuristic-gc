@@ -6,11 +6,11 @@ def main():
     from nagcpy import nix_heuristic_gc
 
     parser = argparse.ArgumentParser()
-    parser.add_argument("--penalize-drvs", default=True, action=argparse.BooleanOptionalAction)
+    parser.add_argument("--penalize-drvs", default=False, action=argparse.BooleanOptionalAction)
     parser.add_argument("--penalize-substitutable", default=True, action=argparse.BooleanOptionalAction)
     parser.add_argument("--penalize-inodes", default=False, action=argparse.BooleanOptionalAction)
     parser.add_argument("--penalize-size", default=False, action=argparse.BooleanOptionalAction)
-    parser.add_argument("--penalize-exceeding-limit", default=True, action=argparse.BooleanOptionalAction)
+    parser.add_argument("--penalize-exceeding-limit", default=False, action=argparse.BooleanOptionalAction)
     parser.add_argument("--dry-run", default=False, action=argparse.BooleanOptionalAction)
 
     loglvl_grp = parser.add_mutually_exclusive_group()

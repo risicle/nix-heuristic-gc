@@ -12,10 +12,10 @@ logger = logging.getLogger(__name__)
 def nix_heuristic_gc(
     reclaim_bytes:int,
     penalize_substitutable:bool=True,
-    penalize_drvs:bool=True,
+    penalize_drvs:bool=False,
     penalize_inodes:bool=False,
     penalize_size:bool=False,
-    penalize_exceeding_limit:bool=True,
+    penalize_exceeding_limit:bool=False,
     dry_run:bool=True,
 ):
     store = libstore.Store()
