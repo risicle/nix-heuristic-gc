@@ -15,6 +15,7 @@ def main():
     parser.add_argument("--penalize-substitutable", default=True, action=argparse.BooleanOptionalAction)
     parser.add_argument("--penalize-inodes", default=False, action=argparse.BooleanOptionalAction)
     parser.add_argument("--penalize-size", default=False, action=argparse.BooleanOptionalAction)
+    parser.add_argument("--penalize-exceeding-limit", default=True, action=argparse.BooleanOptionalAction)
     parser.add_argument("--dry-run", default=False, action=argparse.BooleanOptionalAction)
     parser.add_argument("reclaim_bytes")
 

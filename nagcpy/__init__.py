@@ -15,6 +15,7 @@ def nix_heuristic_gc(
     penalize_drvs:bool=True,
     penalize_inodes:bool=False,
     penalize_size:bool=False,
+    penalize_exceeding_limit:bool=True,
     dry_run:bool=True,
 ):
     store = libstore.Store()
@@ -25,6 +26,7 @@ def nix_heuristic_gc(
         penalize_drvs=1e5 if penalize_drvs else None,
         penalize_inodes=1e6 if penalize_inodes else None,
         penalize_size=1e-3 if penalize_size else None,
+        penalize_exceeding_limit=1e4 if penalize_exceeding_limit else None,
     )
     logger.info("selecting store paths for removal")
     to_reclaim = garbage_graph.remove_nar_bytes(reclaim_bytes)

@@ -35,6 +35,8 @@ class GarbageGraph:
         DRV_OUTPUT = enum.auto()
         OUTPUT_DRV = enum.auto()
 
+    class HeapEmptyError(IndexError): pass
+
     def __init__(
         self,
         store:libstore.Store,
@@ -42,8 +44,10 @@ class GarbageGraph:
         penalize_drvs:Optional[float]=None,
         penalize_inodes:Optional[float]=None,
         penalize_size:Optional[float]=None,
+        penalize_exceeding_limit:Optional[float]=None,
     ):
         self.store = store
+        self.penalize_exceeding_limit = penalize_exceeding_limit
 
         class StorePathNode(self.BaseStorePathNode):
             __slots__ = ()
@@ -184,6 +188,9 @@ class GarbageGraph:
             heapq.heappush(self.heap, (self.graph[i].score, i))
 
     def remove_heap_root(self):
+        if not self.heap:
+            raise self.HeapEmptyError()
+
         idx = heapq.heappop(self.heap)[-1]
         node_data = self.graph[idx]
         ref_idxs = tuple(t for _, t, _ in self.graph.out_edges(idx))
@@ -196,10 +203,65 @@ class GarbageGraph:
 
         return node_data
 
-    def remove_nar_bytes(self, nar_bytes):
+    def correct_heap_root_for_limit_excess(
+        self,
+        nar_bytes_removed:int,
+        nar_bytes_limit:int,
+    ):
+        if not self.heap:
+            raise self.HeapEmptyError()
+
+        if self.penalize_exceeding_limit is None:
+            raise TypeError("This makes no sense to do without penalize_exceeding_limit")
+
+        nar_bytes_remaining = nar_bytes_limit - nar_bytes_removed
+
+        for _ in range(len(self.heap)):
+            candidate_heapscore, candidate_idx = self.heap[0]
+            candidate_spn = self.graph[candidate_idx]
+            if candidate_spn.nar_size <= nar_bytes_remaining:
+                # this entry needs no score correction
+                return
+
+            corrected_score = candidate_spn.score + (
+                (candidate_spn.nar_size - nar_bytes_remaining)
+                * self.penalize_exceeding_limit / nar_bytes_limit
+            )
+            if candidate_heapscore == corrected_score:
+                # score in heap is up to date and the next
+                # pop should yield the lowest scoring entry
+                return
+
+            # candidate hadn't had its score corrected for this
+            # value of nar_bytes_remaining. pop and push back into
+            # the heap with its updated score. if it's still the
+            # lowest scoring entry it will get picked straight out
+            # again on the next iteration.
+            # this works because we can only ever increase a candidate's
+            # score when correcting it - we know that correcting any
+            # heap entry other than the root couldn't make it lower than
+            # the root's score.
+            logger.debug(
+                "correcting score of %(path)s from %(prev_score)s to %(new_score)s",
+                {
+                    "path": candidate_spn.path,
+                    "prev_score": candidate_heapscore,
+                    "new_score": corrected_score,
+                },
+            )
+            heapq.heappushpop(self.heap, (corrected_score, candidate_idx))
+        else:
+            raise AssertionError(
+                "Performed correction shuffle more times than there are "
+                "items in heap. This should not be possible."
+            )
+
+    def remove_nar_bytes(self, nar_bytes:int):
         removed_node_data = []
         removed_bytes = 0
         while removed_bytes < nar_bytes:
+            if self.penalize_exceeding_limit is not None:
+                self.correct_heap_root_for_limit_excess(removed_bytes, nar_bytes)
             node_data = self.remove_heap_root()
             removed_bytes += node_data.nar_size
             removed_node_data.append(node_data)
