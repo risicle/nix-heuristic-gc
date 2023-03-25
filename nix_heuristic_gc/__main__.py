@@ -3,7 +3,7 @@ def main():
     import argparse
     import logging
     from humanfriendly import parse_size
-    from nagcpy import nix_heuristic_gc
+    from nix_heuristic_gc import nix_heuristic_gc
 
     parser = argparse.ArgumentParser()
     parser.add_argument("--penalize-drvs", default=False, action=argparse.BooleanOptionalAction)

@@ -11,7 +11,7 @@ from typing import Optional
 import libstore_wrapper as libstore
 import retworkx as rx
 
-from nagcpy.fs import path_stat_agg
+from nix_heuristic_gc.fs import path_stat_agg
 
 
 logger = logging.getLogger(__name__)

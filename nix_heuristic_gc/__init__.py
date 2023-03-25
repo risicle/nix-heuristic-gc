@@ -5,7 +5,7 @@ from humanfriendly import format_size
 
 import libstore_wrapper as libstore
 
-from nagcpy.graph import GarbageGraph
+from nix_heuristic_gc.graph import GarbageGraph
 
 logger = logging.getLogger(__name__)
 

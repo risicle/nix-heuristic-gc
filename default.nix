@@ -5,11 +5,7 @@
 }:
 {
   nagcpyEnv = pkgs.stdenv.mkDerivation {
-    name = "nagcpy-env";
-
-#     NIX_CFLAGS_COMPILE = [
-#       "-I ${pkgs.nix}/include/eigen3"
-#     ];
+    name = "nix-heuristic-gc-env";
 
     buildInputs = [
       pythonPackages.humanfriendly
