@@ -1,3 +1,2 @@
-nix-heuristic-gc
-================
+# nix-heuristic-gc
 

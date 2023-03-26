@@ -31,4 +31,8 @@ setup(
     },
     zip_safe=False,
     python_requires=">=3.8",
+    license="LGPL-2.1-or-later",
+    classifiers=[
+        "License :: OSI Approved :: GNU Lesser General Public License v2 or later (LGPLv2+)",
+    ],
 )
