@@ -136,7 +136,12 @@ class GarbageGraph:
 
                 for ref_sp in path_info.references:
                     ref_node_index = self.path_index_mapping.get(str(ref_sp))
-                    if ref_node_index is not None:
+                    if ref_node_index == node_index:
+                        logger.debug(
+                            "omitting self-referencing edge from path %s",
+                            str(path_info.path),
+                        )
+                    elif ref_node_index is not None:
                         self.graph.add_edge(
                             node_index,
                             ref_node_index,
