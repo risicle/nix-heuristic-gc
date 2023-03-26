@@ -23,8 +23,12 @@ def main():
 
     parsed["reclaim_bytes"] = parse_size(parsed["reclaim_bytes"])
 
+    loglevel = parsed.pop("loglevel", None)
+    if loglevel is None:
+        loglevel = logging.INFO
+
     logging.basicConfig(
-        level=parsed.pop("loglevel", logging.INFO),
+        level=parsed.pop("loglevel", loglevel),
         format="%(asctime)s:%(levelname)s:%(name)s: %(message)s",
     )
 
