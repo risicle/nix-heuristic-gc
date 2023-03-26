@@ -264,11 +264,32 @@ class GarbageGraph:
     def remove_nar_bytes(self, nar_bytes:int):
         removed_node_data = []
         removed_bytes = 0
-        while removed_bytes < nar_bytes:
-            if self.penalize_exceeding_limit is not None:
-                self.correct_heap_root_for_limit_excess(removed_bytes, nar_bytes)
-            node_data = self.remove_heap_root()
-            removed_bytes += node_data.nar_size
-            removed_node_data.append(node_data)
+        try:
+            while removed_bytes < nar_bytes:
+                if self.penalize_exceeding_limit is not None:
+                    self.correct_heap_root_for_limit_excess(removed_bytes, nar_bytes)
+                node_data = self.remove_heap_root()
+                removed_bytes += node_data.nar_size
+                removed_node_data.append(node_data)
+        except self.HeapEmptyError:
+            logger.warning("ran out of zero-reference paths to remove")
+            if self.graph.num_nodes():
+                logger.warning(
+                    "%(path_count)s remaining paths may have reference loops - "
+                    "use regular nix gc commands to remove these.",
+                    {
+                        "path_count": self.graph.num_nodes(),
+                    },
+                )
+                logger.debug(
+                    "%(count)s pseudo-roots left in graph",
+                    {
+                        "count": sum(1 for i in self.graph.node_indices() if self.graph.in_degree(i) == 0),
+                    },
+                )
+                logger.debug(
+                    "first encountered cycle: %s",
+                    [str(self.graph[i].path) for i in rx.digraph_find_cycle(self.graph)],
+                )
 
         return removed_node_data
