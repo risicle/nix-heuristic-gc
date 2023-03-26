@@ -3,8 +3,7 @@ from os.path import join as path_join
 
 from humanfriendly import format_size
 
-import libstore_wrapper as libstore
-
+import nix_heuristic_gc.libnixstore_wrapper as libstore
 from nix_heuristic_gc.graph import GarbageGraph
 
 logger = logging.getLogger(__name__)

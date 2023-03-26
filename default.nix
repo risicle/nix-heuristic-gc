@@ -19,6 +19,23 @@
       pythonPackages.ipython
       pythonPackages.matplotlib
       pkgs.pwndbg
+      pkgs.less
+    ];
+  };
+
+  pkg = pythonPackages.buildPythonPackage {
+    name = "nix-heuristic-gc";
+    src = ./.;
+
+    buildInputs = [
+      pkgs.boost
+      pkgs.nix
+      pythonPackages.pybind11
+      pythonPackages.setuptools
+    ];
+    propagatedBuildInputs = [
+      pythonPackages.humanfriendly
+      pythonPackages.retworkx
     ];
   };
 }

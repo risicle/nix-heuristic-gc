@@ -15,7 +15,7 @@
 namespace py = pybind11;
 
 
-PYBIND11_MODULE(libstore_wrapper, m) {
+PYBIND11_MODULE(libnixstore_wrapper, m) {
     m.doc() = R"pbdoc(
         libnixstore wrapper
         -------------------
