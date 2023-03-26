@@ -1,5 +1,4 @@
 from functools import reduce
-from itertools import chain
 from os import scandir, stat, DirEntry
 from stat import S_ISDIR
 
