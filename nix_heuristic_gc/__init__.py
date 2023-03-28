@@ -8,24 +8,38 @@ from nix_heuristic_gc.graph import GarbageGraph
 
 logger = logging.getLogger(__name__)
 
+
+def _unfriendly_weight(
+    friendly_weight:int,
+    default_unfriendly_weight:float,
+    exp_base:float=6,
+    default_friendly_weight:float=5,
+):
+    if not friendly_weight:
+        return None
+    return (
+        exp_base ** (friendly_weight-default_friendly_weight)
+    ) * default_unfriendly_weight
+
+
 def nix_heuristic_gc(
     reclaim_bytes:int,
-    penalize_substitutable:bool=True,
-    penalize_drvs:bool=False,
-    penalize_inodes:bool=False,
-    penalize_size:bool=False,
-    penalize_exceeding_limit:bool=False,
+    penalize_substitutable:int=5,
+    penalize_drvs:int=0,
+    penalize_inodes:int=0,
+    penalize_size:int=0,
+    penalize_exceeding_limit:int=0,
     dry_run:bool=True,
 ):
     store = libstore.Store()
 
     garbage_graph = GarbageGraph(
         store=store,
-        penalize_substitutable=1e5 if penalize_substitutable else None,
-        penalize_drvs=1e5 if penalize_drvs else None,
-        penalize_inodes=1e6 if penalize_inodes else None,
-        penalize_size=1e-3 if penalize_size else None,
-        penalize_exceeding_limit=1e4 if penalize_exceeding_limit else None,
+        penalize_substitutable=_unfriendly_weight(penalize_substitutable, 1e5),
+        penalize_drvs=_unfriendly_weight(penalize_drvs, 1e5),
+        penalize_inodes=_unfriendly_weight(penalize_inodes, 1e6),
+        penalize_size=_unfriendly_weight(penalize_size, 1e-3),
+        penalize_exceeding_limit=_unfriendly_weight(penalize_exceeding_limit, 1e5),
     )
     logger.info("selecting store paths for removal")
     to_reclaim = garbage_graph.remove_nar_bytes(reclaim_bytes)
