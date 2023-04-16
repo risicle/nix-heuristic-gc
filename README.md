@@ -21,6 +21,9 @@ accessed (or more easily replaceable) store paths.
    from perfect and may even be disabled on your filesystem.
  - This may not work (at all) well with both `keep-derivations` and
    `keep-outputs` nix settings enabled.
+ - This is unable to delete invalid paths (i.e. the partial products of failed
+   builds) because libnixstore lacks the interface to precisely request such
+   a thing.
  - If it breaks, you get to keep both parts. That said, there shouldn't be
    any real _danger_ of e.g. deleting something that the existing GC wouldn't
    delete as we effectively just wrap the existing GC commands at a cpp-level.
