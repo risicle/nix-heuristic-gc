@@ -138,3 +138,9 @@ dmypy.json
 
 # Cython debug symbols
 cython_debug/
+
+# nix
+result
+result-*
+
+.gdb_history

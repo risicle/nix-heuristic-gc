@@ -24,8 +24,9 @@
   };
 
   pkg = pythonPackages.buildPythonPackage {
-    name = "nix-heuristic-gc";
-    src = ./.;
+    pname = "nix-heuristic-gc";
+    version = pkgs.lib.removeSuffix "\n" (builtins.readFile ./VERSION);
+    src = pkgs.nix-gitignore.gitignoreSource ["*.nix" "flake.lock"] ./.;
 
     buildInputs = [
       pkgs.boost
