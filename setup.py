@@ -34,7 +34,7 @@ setup(
     author="Robert Scott",
     author_email="code@humanleg.org.uk",
     url="https://github.com/risicle/nix-heuristic-gc",
-    description="",
+    description="A more discerning cousin of nix-collect-garbage",
     long_description="",
     packages=["nix_heuristic_gc"],
     ext_modules=ext_modules,
