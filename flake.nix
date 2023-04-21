@@ -9,7 +9,7 @@
   outputs = { self, nixpkgs, flake-utils }:
     flake-utils.lib.eachSystem flake-utils.lib.allSystems (system: let
       pkgs = nixpkgs.legacyPackages.${system};
-      nhgc = import ./default.nix { inherit pkgs; };
+      nhgc = import ./default.nix { inherit pkgs system; };
     in {
       packages.default = nhgc.pkg;
     });

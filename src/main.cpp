@@ -2,7 +2,8 @@
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
 
-#define SYSTEM "x86_64-linux"
+#define _STRINGIFY_MACRO(x) #x
+#define SYSTEM _STRINGIFY_MACRO(NIX_SYSTEM)
 #include <nix/callback.hh>
 #include <nix/gc-store.hh>
 #include <nix/store-cast.hh>

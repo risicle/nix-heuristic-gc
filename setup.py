@@ -2,6 +2,16 @@
 from pybind11.setup_helpers import Pybind11Extension, build_ext
 from setuptools import setup
 
+from os import environ
+
+try:
+    NIX_SYSTEM = environ["NIX_SYSTEM"]
+except KeyError:
+    raise EnvironmentError(
+        "Please set NIX_SYSTEM environment variable"
+        # or someone tell me how i can extract this automatically
+    )
+
 with open("VERSION", "r") as r:
     __version__ = r.read().strip()
 
@@ -11,7 +21,10 @@ ext_modules = [
         ["src/main.cpp"],
         libraries = [ "nixstore" ],
         # Example: passing in the version to the compiled code
-        define_macros = [('VERSION_INFO', __version__)],
+        define_macros = [
+            ('VERSION_INFO', __version__),
+            ('NIX_SYSTEM', NIX_SYSTEM),
+        ],
     ),
 ]
 

@@ -1,4 +1,5 @@
 { pkgs ? import <nixpkgs> {}
+, system ? builtins.currentSystem
 , pythonPackages ? pkgs.python310Packages
 , forTest ? true
 , forDev ? true
@@ -6,6 +7,8 @@
 {
   nagcpyEnv = pkgs.stdenv.mkDerivation {
     name = "nix-heuristic-gc-env";
+
+    NIX_SYSTEM = system;
 
     buildInputs = [
       pythonPackages.humanfriendly
@@ -27,6 +30,8 @@
     pname = "nix-heuristic-gc";
     version = pkgs.lib.removeSuffix "\n" (builtins.readFile ./VERSION);
     src = pkgs.nix-gitignore.gitignoreSource ["*.nix" "flake.lock"] ./.;
+
+    NIX_SYSTEM = system;
 
     buildInputs = [
       pkgs.boost
