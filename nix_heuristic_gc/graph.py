@@ -1,3 +1,4 @@
+from concurrent.futures import Executor
 from dataclasses import dataclass
 import enum
 import heapq
@@ -12,6 +13,7 @@ import retworkx as rx
 
 import nix_heuristic_gc.libnixstore_wrapper as libstore
 from nix_heuristic_gc.fs import path_stat_agg
+from nix_heuristic_gc.naive_executor import NaiveExecutor
 
 
 logger = logging.getLogger(__name__)
@@ -40,6 +42,7 @@ class GarbageGraph:
     def __init__(
         self,
         store:libstore.Store,
+        executor:Executor=NaiveExecutor(),
         penalize_substitutable:Optional[float]=None,
         penalize_drvs:Optional[float]=None,
         penalize_inodes:Optional[float]=None,
@@ -48,6 +51,7 @@ class GarbageGraph:
     ):
         self.store = store
         self.penalize_exceeding_limit = penalize_exceeding_limit
+        self._executor = executor
 
         class StorePathNode(self.BaseStorePathNode):
             __slots__ = ()
@@ -121,6 +125,7 @@ class GarbageGraph:
         self.path_index_mapping = {}
         self.invalid_paths = set()
 
+        logger.info("building graph")
         for store_path in reversed(garbage_store_paths_sorted):
             try:
                 path_info = self.store.query_path_info(store_path)
@@ -189,8 +194,16 @@ class GarbageGraph:
 
         logger.info("constructing heap")
         self.heap = []
-        for i in pseudo_root_idxs:
-            heapq.heappush(self.heap, (self.graph[i].score, i))
+        # this shouldn't require any locking as long as each task only
+        # references one unique StorePathNode
+        for heap_tuple in self._executor.map(
+            self._get_heap_tuple,
+            pseudo_root_idxs,
+        ):
+            heapq.heappush(self.heap, heap_tuple)
+
+    def _get_heap_tuple(self, ref_idx):
+        return self.graph[ref_idx].score, ref_idx
 
     def remove_heap_root(self):
         if not self.heap:
@@ -198,13 +211,17 @@ class GarbageGraph:
 
         idx = heapq.heappop(self.heap)[-1]
         node_data = self.graph[idx]
-        ref_idxs = tuple(t for _, t, _ in self.graph.out_edges(idx))
+        ref_idxs = frozenset((t for _, t, _ in self.graph.out_edges(idx)))
         self.graph.remove_node(idx)
         del self.path_index_mapping[node_data.path]
 
-        for ref_idx in ref_idxs:
-            if self.graph.in_degree(ref_idx) == 0:
-                heapq.heappush(self.heap, (self.graph[ref_idx].score, ref_idx))
+        # this shouldn't require any locking as long as each task only
+        # references one unique StorePathNode
+        for heap_tuple in self._executor.map(
+            self._get_heap_tuple,
+            (ref_idx for ref_idx in ref_idxs if self.graph.in_degree(ref_idx) == 0),
+        ):
+            heapq.heappush(self.heap, heap_tuple)
 
         return node_data
 

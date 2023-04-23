@@ -115,6 +115,14 @@ def main():
         help="Don't actually delete any paths, but print list of paths "
         "that would be deleted to stdout.",
     )
+    parser.add_argument(
+        "--threads", "-t",
+        type=int,
+        help="Maximum number of threads to use when gathering path information. 0 "
+        "disables multi-threading entirely. Default automatic. Concurrency is "
+        "also limited by store settings' max-connections value - for best "
+        "results increase that to a sensible value (perhaps via NIX_REMOTE?).",
+    )
 
     loglvl_grp = parser.add_mutually_exclusive_group()
     loglvl_grp.add_argument("--verbose", "-v", dest="loglevel", action="store_const", const=logging.DEBUG)

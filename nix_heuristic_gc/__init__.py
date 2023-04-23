@@ -1,10 +1,13 @@
+from concurrent.futures import ThreadPoolExecutor
 import logging
 from os.path import join as path_join
+from typing import Optional
 
 from humanfriendly import format_size
 
 import nix_heuristic_gc.libnixstore_wrapper as libstore
 from nix_heuristic_gc.graph import GarbageGraph
+from nix_heuristic_gc.naive_executor import NaiveExecutor
 
 logger = logging.getLogger(__name__)
 
@@ -29,12 +32,21 @@ def nix_heuristic_gc(
     penalize_inodes:int=0,
     penalize_size:int=0,
     penalize_exceeding_limit:int=0,
+    threads:Optional[int]=None,
     dry_run:bool=True,
 ):
     store = libstore.Store()
 
+    if (threads or 0) < 0:
+        raise ValueError("Negative values for threads argument make no sense")
+    elif threads == 0:
+        executor = NaiveExecutor()
+    else:
+        executor = ThreadPoolExecutor(max_workers=threads)
+
     garbage_graph = GarbageGraph(
         store=store,
+        executor=executor,
         penalize_substitutable=_unfriendly_weight(penalize_substitutable, 1e5),
         penalize_drvs=_unfriendly_weight(penalize_drvs, 1e5),
         penalize_inodes=_unfriendly_weight(penalize_inodes, 1e6),
