@@ -44,9 +44,16 @@ def _weighting_help_text(
 
 def main():
     import argparse
+    from importlib.metadata import version as metadata_version, PackageNotFoundError
     import logging
+
     from humanfriendly import parse_size
     from nix_heuristic_gc import nix_heuristic_gc
+
+    try:
+        version = metadata_version("nix_heuristic_gc")
+    except PackageNotFoundError:
+        version = "unknown"
 
     parser = argparse.ArgumentParser(
         description="delete the least recently used or most easily replaced "
@@ -122,6 +129,11 @@ def main():
         "disables multi-threading entirely. Default automatic. Concurrency is "
         "also limited by store settings' max-connections value - for best "
         "results increase that to a sensible value (perhaps via NIX_REMOTE?).",
+    )
+    parser.add_argument(
+        "--version",
+        action="version",
+        version=version,
     )
 
     loglvl_grp = parser.add_mutually_exclusive_group()
