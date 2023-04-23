@@ -88,7 +88,8 @@ PYBIND11_MODULE(libnixstore_wrapper, m) {
                 return std::make_tuple(std::move(results.paths), results.bytesFreed);
             },
             py::arg("action") = nix::GCOptions::GCAction::gcReturnDead,
-            py::arg("paths_to_delete") = py::none()
+            py::arg("paths_to_delete") = py::none(),
+            py::call_guard<py::gil_scoped_release>()
         ).def(
             "query_referrers",
             [](
@@ -100,7 +101,8 @@ PYBIND11_MODULE(libnixstore_wrapper, m) {
                 return results;
             },
             py::arg("store_path"),
-            py::return_value_policy::take_ownership
+            py::return_value_policy::take_ownership,
+            py::call_guard<py::gil_scoped_release>()
         ).def(
             "query_derivation_outputs",
             [](
@@ -109,7 +111,8 @@ PYBIND11_MODULE(libnixstore_wrapper, m) {
             ) {
                 return store.queryDerivationOutputs(store_path);
             },
-            py::arg("store_path")
+            py::arg("store_path"),
+            py::call_guard<py::gil_scoped_release>()
         ).def(
             "query_path_info",
             [](
@@ -118,7 +121,8 @@ PYBIND11_MODULE(libnixstore_wrapper, m) {
             ){
                 return store.queryPathInfo(store_path).get_ptr();
             },
-            py::arg("store_path")
+            py::arg("store_path"),
+            py::call_guard<py::gil_scoped_release>()
         ).def(
             "query_path_info_async",
             [get_event_loop, RuntimeError](
@@ -142,13 +146,16 @@ PYBIND11_MODULE(libnixstore_wrapper, m) {
                 );
                 return pyfuture;
             },
-            py::arg("store_path")
+            py::arg("store_path"),
+            py::call_guard<py::gil_scoped_release>()
         ).def(
             "query_substitutable_paths",
-            &nix::Store::querySubstitutablePaths
+            &nix::Store::querySubstitutablePaths,
+            py::call_guard<py::gil_scoped_release>()
         ).def(
             "topo_sort_paths",
-            &nix::Store::topoSortPaths
+            &nix::Store::topoSortPaths,
+            py::call_guard<py::gil_scoped_release>()
         );
 
 #ifdef VERSION_INFO
