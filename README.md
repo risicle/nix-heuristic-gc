@@ -39,13 +39,17 @@ usage: nix-heuristic-gc [-h]
                         [--penalize-exceeding-limit | --no-penalize-exceeding-limit | --penalize-exceeding-limit-weight WEIGHT]
                         [--dry-run | --no-dry-run] [--threads THREADS] [--version]
                         [--verbose | --quiet]
-                        reclaim_bytes
+                        limit
 
 delete the least recently used or most easily replaced nix store paths based on customizable
 heuristics
 
 positional arguments:
-  reclaim_bytes
+  limit                 Amount of garbage to collect, specified either in units of bytes (with
+                        optional multiplier prefix) or in units of 'I' (uppercase) - the number
+                        of inodes to be freed. Numbers with no units are assumed to be bytes.
+                        E.g. '100MiB' - 100 Mebibytes, '12KI' - 12 thousand inodes, '2G' - 2
+                        Gigabytes
 
 options:
   -h, --help            show this help message and exit
@@ -69,23 +73,28 @@ options:
   --penalize-inodes-weight WEIGHT
                         Prefer choosing paths for deletion that will free up a lot of inodes,
                         with weighting WEIGHT typically being a value from 1 (weak) to 10
-                        (strong). --penalize-inodes flag applies a WEIGHT of 5. This penalizes
-                        paths which have a large inode/size ratio.
+                        (strong). --penalize-inodes flag applies a WEIGHT of 5. When specifying
+                        a deletion limit by number of inodes, this will tend to select fewer,
+                        more inode-heavy paths to reach that limit - but it can be prone to
+                        overshoot, so recommend use with --penalize-exceeding-limit in this
+                        case..
   --penalize-size
   --no-penalize-size
   --penalize-size-weight WEIGHT
-                        Prefer choosing fewer, large (by nar size) paths for deletion, with
-                        weighting WEIGHT typically being a value from 1 (weak) to 10 (strong).
-                        --penalize-size flag applies a WEIGHT of 5. Recommend use with
-                        --penalize-exceeding-limit as this can cause significant overshoot.
+                        Prefer choosing larger (by nar size) paths for deletion, with weighting
+                        WEIGHT typically being a value from 1 (weak) to 10 (strong).
+                        --penalize-size flag applies a WEIGHT of 5. When specifying a deletion
+                        limit in bytes, this will tend to select fewer, larger paths to reach
+                        that limit - but it can be prone to overshoot, so recommend use with
+                        --penalize-exceeding-limit in this case..
   --penalize-exceeding-limit
   --no-penalize-exceeding-limit
   --penalize-exceeding-limit-weight WEIGHT
                         Attempt to avoid going significantly over the size limit, with
                         weighting WEIGHT typically being a value from 1 (weak) to 10 (strong).
                         --penalize-exceeding-limit flag applies a WEIGHT of 5. This penalizes
-                        path selections that would cause more deletion than requested by
-                        reclaim_bytes proportional to the overshoot.
+                        path selections that would cause more deletion than requested by limit
+                        proportional to the overshoot.
   --dry-run, --no-dry-run
                         Don't actually delete any paths, but print list of paths that would be
                         deleted to stdout. (default: False)

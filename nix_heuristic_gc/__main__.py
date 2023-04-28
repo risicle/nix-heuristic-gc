@@ -47,8 +47,8 @@ def main():
     from importlib.metadata import version as metadata_version, PackageNotFoundError
     import logging
 
-    from humanfriendly import parse_size
     from nix_heuristic_gc import nix_heuristic_gc
+    from nix_heuristic_gc.quantity import parse_quantity
 
     try:
         version = metadata_version("nix_heuristic_gc")
@@ -89,7 +89,10 @@ def main():
         _weighting_help_text(
             "Prefer choosing paths for deletion that will free up a lot of inodes",
             "--penalize-inodes",
-            "This penalizes paths which have a large inode/size ratio",
+            "When specifying a deletion limit by number of inodes, this will "
+            "tend to select fewer, more inode-heavy paths to reach that limit - "
+            "but it can be prone to overshoot, so recommend use with "
+            "--penalize-exceeding-limit in this case.",
         )
     )
     _add_penalize_args(
@@ -97,10 +100,12 @@ def main():
         "size",
         False,
         _weighting_help_text(
-            "Prefer choosing fewer, large (by nar size) paths for deletion",
+            "Prefer choosing larger (by nar size) paths for deletion",
             "--penalize-size",
-            "Recommend use with --penalize-exceeding-limit as this can cause "
-            "significant overshoot",
+            "When specifying a deletion limit in bytes, this will tend to "
+            "select fewer, larger paths to reach that limit - but it can be "
+            "prone to overshoot, so recommend use with "
+            "--penalize-exceeding-limit in this case.",
         )
     )
     _add_penalize_args(
@@ -111,7 +116,7 @@ def main():
             "Attempt to avoid going significantly over the size limit",
             "--penalize-exceeding-limit",
             "This penalizes path selections that would cause more deletion "
-            "than requested by reclaim_bytes proportional to the overshoot",
+            "than requested by limit proportional to the overshoot",
         )
     )
 
@@ -140,11 +145,18 @@ def main():
     loglvl_grp.add_argument("--verbose", "-v", dest="loglevel", action="store_const", const=logging.DEBUG)
     loglvl_grp.add_argument("--quiet", "-q", dest="loglevel", action="store_const", const=logging.WARNING)
 
-    parser.add_argument("reclaim_bytes")
+    parser.add_argument(
+        "limit",
+        help="Amount of garbage to collect, specified either in units of bytes "
+        "(with optional multiplier prefix) or in units of 'I' (uppercase) - the "
+        "number of inodes to be freed. Numbers with no units are assumed to be "
+        "bytes. E.g. '100MiB' - 100 Mebibytes, '12KI' - 12 thousand inodes, "
+        "'2G' - 2 Gigabytes",
+    )
 
     parsed = vars(parser.parse_args())
 
-    parsed["reclaim_bytes"] = parse_size(parsed["reclaim_bytes"])
+    parsed["limit"] = parse_quantity(parsed["limit"])
 
     loglevel = parsed.pop("loglevel", None)
     if loglevel is None:

@@ -8,6 +8,7 @@ from humanfriendly import format_size
 import nix_heuristic_gc.libnixstore_wrapper as libstore
 from nix_heuristic_gc.graph import GarbageGraph
 from nix_heuristic_gc.naive_executor import NaiveExecutor
+from nix_heuristic_gc.quantity import Quantity
 
 logger = logging.getLogger(__name__)
 
@@ -26,7 +27,7 @@ def _unfriendly_weight(
 
 
 def nix_heuristic_gc(
-    reclaim_bytes:int,
+    limit:Quantity,
     penalize_substitutable:int=5,
     penalize_drvs:int=0,
     penalize_inodes:int=0,
@@ -46,6 +47,7 @@ def nix_heuristic_gc(
 
     garbage_graph = GarbageGraph(
         store=store,
+        limit_unit=limit.unit,
         executor=executor,
         penalize_substitutable=_unfriendly_weight(penalize_substitutable, 1e5),
         penalize_drvs=_unfriendly_weight(penalize_drvs, 1e5),
@@ -54,7 +56,8 @@ def nix_heuristic_gc(
         penalize_exceeding_limit=_unfriendly_weight(penalize_exceeding_limit, 1e5),
     )
     logger.info("selecting store paths for removal")
-    to_reclaim = garbage_graph.remove_nar_bytes(reclaim_bytes)
+    logger.debug("using limit of %s", limit)
+    to_reclaim = garbage_graph.remove_to_limit(limit.value)
 
     logger.info(
         "%(maybe_not)srequesting deletion of %(count)s store paths, total nar_size %(size)s, %(inodes)s inodes",

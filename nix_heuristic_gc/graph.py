@@ -14,6 +14,7 @@ import retworkx as rx
 import nix_heuristic_gc.libnixstore_wrapper as libstore
 from nix_heuristic_gc.fs import path_stat_agg
 from nix_heuristic_gc.naive_executor import NaiveExecutor
+from nix_heuristic_gc.quantity import Quantity, QuantityUnit
 
 
 logger = logging.getLogger(__name__)
@@ -42,6 +43,7 @@ class GarbageGraph:
     def __init__(
         self,
         store:libstore.Store,
+        limit_unit:QuantityUnit,
         executor:Executor=NaiveExecutor(),
         penalize_substitutable:Optional[float]=None,
         penalize_drvs:Optional[float]=None,
@@ -90,13 +92,43 @@ class GarbageGraph:
                 if penalize_substitutable is not None and _self.substitutable:
                     s -= penalize_substitutable
                 if penalize_inodes is not None:
+                    s -= penalize_inodes * _self.inodes_score
+                if penalize_size is not None:
+                    s -= penalize_size * _self.nar_size_score
+                return s
+
+            if limit_unit == QuantityUnit.BYTES:
+                @property
+                def limit_measurement(_self):
+                    return _self.nar_size
+
+                @property
+                def inodes_score(_self):
                     # divide by nar_size - we want to free many inodes before
                     # we hit the limit, and the limit is based on nar_size.
                     # add one to nar_size to avoid zero-division
-                    s -= penalize_inodes * _self.inodes / (_self.nar_size+1)
-                if penalize_size is not None:
-                    s -= penalize_size *_self.nar_size
-                return s
+                    return _self.inodes / (_self.nar_size+1)
+
+                @property
+                def nar_size_score(_self):
+                    return _self.nar_size
+            elif limit_unit == QuantityUnit.INODES:
+                @property
+                def limit_measurement(_self):
+                    return _self.inodes
+
+                @property
+                def inodes_score(_self):
+                    return _self.inodes
+
+                @property
+                def nar_size_score(_self):
+                    # divide by inodes - we want to free many bytes before
+                    # we hit the limit, and the limit is based on inodes.
+                    # add one to inodes to avoid zero-division
+                    return _self.nar_size / (_self.inodes+1)
+            else:
+                raise ValueError(f"Don't know how to measure {limit_unit!r}")
 
         self.StorePathNode = StorePathNode
 
@@ -227,8 +259,8 @@ class GarbageGraph:
 
     def correct_heap_root_for_limit_excess(
         self,
-        nar_bytes_removed:int,
-        nar_bytes_limit:int,
+        limit:int,
+        limit_removed:int,
     ):
         if not self.heap:
             raise self.HeapEmptyError()
@@ -236,18 +268,18 @@ class GarbageGraph:
         if self.penalize_exceeding_limit is None:
             raise TypeError("This makes no sense to do without penalize_exceeding_limit")
 
-        nar_bytes_remaining = nar_bytes_limit - nar_bytes_removed
+        limit_remaining = limit - limit_removed
 
         for _ in range(len(self.heap)):
             candidate_heapscore, candidate_idx = self.heap[0]
             candidate_spn = self.graph[candidate_idx]
-            if candidate_spn.nar_size <= nar_bytes_remaining:
+            if candidate_spn.limit_measurement <= limit_remaining:
                 # this entry needs no score correction
                 return
 
             corrected_score = candidate_spn.score + (
-                (candidate_spn.nar_size - nar_bytes_remaining)
-                * self.penalize_exceeding_limit / nar_bytes_limit
+                (candidate_spn.limit_measurement - limit_remaining)
+                * self.penalize_exceeding_limit / limit
             )
             if candidate_heapscore == corrected_score:
                 # score in heap is up to date and the next
@@ -255,7 +287,7 @@ class GarbageGraph:
                 return
 
             # candidate hadn't had its score corrected for this
-            # value of nar_bytes_remaining. pop and push back into
+            # value of limit_remaining. pop and push back into
             # the heap with its updated score. if it's still the
             # lowest scoring entry it will get picked straight out
             # again on the next iteration.
@@ -278,15 +310,16 @@ class GarbageGraph:
                 "items in heap. This should not be possible."
             )
 
-    def remove_nar_bytes(self, nar_bytes:int):
+    def remove_to_limit(self, limit:int):
         removed_node_data = []
-        removed_bytes = 0
+        limit_removed = 0
+
         try:
-            while removed_bytes < nar_bytes:
+            while limit_removed < limit:
                 if self.penalize_exceeding_limit is not None:
-                    self.correct_heap_root_for_limit_excess(removed_bytes, nar_bytes)
+                    self.correct_heap_root_for_limit_excess(limit, limit_removed)
                 node_data = self.remove_heap_root()
-                removed_bytes += node_data.nar_size
+                limit_removed += node_data.limit_measurement
                 removed_node_data.append(node_data)
         except self.HeapEmptyError:
             logger.warning("ran out of zero-reference paths to remove")
