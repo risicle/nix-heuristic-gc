@@ -16,7 +16,7 @@ logger = logging.getLogger(__name__)
 def _unfriendly_weight(
     friendly_weight:int,
     default_unfriendly_weight:float,
-    exp_base:float=6,
+    exp_base:float=7,
     default_friendly_weight:float=5,
 ):
     if not friendly_weight:
@@ -53,7 +53,7 @@ def nix_heuristic_gc(
         penalize_drvs=_unfriendly_weight(penalize_drvs, 1e5),
         penalize_inodes=_unfriendly_weight(penalize_inodes, 1e6),
         penalize_size=_unfriendly_weight(penalize_size, 1e-3),
-        penalize_exceeding_limit=_unfriendly_weight(penalize_exceeding_limit, 1e5),
+        penalize_exceeding_limit=_unfriendly_weight(penalize_exceeding_limit, 5e5),
     )
     logger.info("selecting store paths for removal")
     logger.debug("using limit of %s", limit)
