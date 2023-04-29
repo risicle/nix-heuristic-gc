@@ -8,6 +8,9 @@
 #include <nix/gc-store.hh>
 #include <nix/store-cast.hh>
 #include <nix/store-api.hh>
+#include <nix/remote-store.hh>
+#include <nix/local-store.hh>
+#include <nix/local-fs-store.hh>
 #undef SYSTEM
 
 #define STRINGIFY(x) #x
@@ -83,7 +86,19 @@ PYBIND11_MODULE(libnixstore_wrapper, m) {
 
                 nix::GCResults results;
 
-                nix::require<nix::GcStore>(store).collectGarbage(options, results);
+                try {
+                    dynamic_cast<nix::GcStore&>(store).collectGarbage(options, results);
+                } catch (const std::bad_cast& e) {
+                    try {
+                        dynamic_cast<nix::RemoteStore&>(store).collectGarbage(options, results);
+                    } catch (const std::bad_cast& e) {
+                        try {
+                            dynamic_cast<nix::LocalStore&>(store).collectGarbage(options, results);
+                        } catch (const std::bad_cast& e) {
+                            dynamic_cast<nix::LocalFSStore&>(store).collectGarbage(options, results);
+                        }
+                    }
+                }
 
                 return std::make_tuple(std::move(results.paths), results.bytesFreed);
             },
