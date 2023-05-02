@@ -97,7 +97,14 @@ PYBIND11_MODULE(libnixstore_wrapper, m) {
                         try {
                             dynamic_cast<nix::LocalStore&>(store).collectGarbage(options, results);
                         } catch (const std::bad_cast& e) {
-                            dynamic_cast<nix::LocalFSStore&>(store).collectGarbage(options, results);
+                            try {
+                                dynamic_cast<nix::LocalFSStore&>(store).collectGarbage(options, results);
+                            } catch (const std::bad_cast& e) {
+                                throw nix::UsageError(
+                                    "Store '%s' is not a store known to support garbage collection",
+                                    store.getUri()
+                                );
+                            }
                         }
                     }
                 }
