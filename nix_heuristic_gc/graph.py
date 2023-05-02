@@ -67,6 +67,8 @@ class GarbageGraph:
                         _nix_store_path,
                         _self.path,
                     ))
+                    if inherit_max_atime:
+                        _self._propagate_max_atime()
                 return _self._inodes
 
             @property
@@ -76,6 +78,8 @@ class GarbageGraph:
                         _nix_store_path,
                         _self.path,
                     ))
+                    if inherit_max_atime:
+                        _self._propagate_max_atime()
                 if inherit_max_atime:
                     return max(_self._max_atime, _self._inherited_max_atime or 0)
                 else:
@@ -101,6 +105,19 @@ class GarbageGraph:
                 if penalize_size is not None:
                     s -= penalize_size * _self.nar_size_score
                 return s
+
+            # FIXME this is evil abuse of our closure
+            def _propagate_max_atime(_self):
+                assert _self._max_atime is not None
+                for desc_idx in rx.descendants(
+                    self.graph,
+                    self.path_index_mapping[_self.path],
+                ):
+                    desc_spn = self.graph[desc_idx]
+                    desc_spn._inherited_max_atime = max(
+                        _self._max_atime,
+                        desc_spn._inherited_max_atime or 0,
+                    )
 
             if limit_unit == QuantityUnit.BYTES:
                 @property
