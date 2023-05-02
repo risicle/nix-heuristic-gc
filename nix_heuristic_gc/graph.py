@@ -29,6 +29,7 @@ class GarbageGraph:
     class BaseStorePathNode:
         path: str
         nar_size: int
+        _inherited_max_atime[int] = None
         _max_atime:Optional[int] = None
         _inodes:Optional[int] = None
         _substitutable:Optional[int] = None
@@ -50,6 +51,7 @@ class GarbageGraph:
         penalize_inodes:Optional[float]=None,
         penalize_size:Optional[float]=None,
         penalize_exceeding_limit:Optional[float]=None,
+        inherit_max_atime[bool]=False,
     ):
         self.store = store
         self.penalize_exceeding_limit = penalize_exceeding_limit
@@ -74,7 +76,10 @@ class GarbageGraph:
                         _nix_store_path,
                         _self.path,
                     ))
-                return _self._max_atime
+                if inherit_max_atime:
+                    return max(_self._max_atime, _self._inherited_max_atime or 0)
+                else:
+                    return _self._max_atime
 
             @property
             def substitutable(_self):
