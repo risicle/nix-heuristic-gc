@@ -5,7 +5,7 @@
 , forDev ? true
 }:
 {
-  nagcpyEnv = pkgs.stdenv.mkDerivation {
+  nhgcEnv = pkgs.stdenv.mkDerivation {
     name = "nix-heuristic-gc-env";
 
     NIX_SYSTEM = system;
