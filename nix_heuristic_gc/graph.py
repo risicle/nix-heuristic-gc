@@ -29,6 +29,7 @@ class GarbageGraph:
     class BaseStorePathNode:
         path: str
         nar_size: int
+        _inherited_max_atime:Optional[int] = None
         _max_atime:Optional[int] = None
         _inodes:Optional[int] = None
         _substitutable:Optional[int] = None
@@ -50,9 +51,11 @@ class GarbageGraph:
         penalize_inodes:Optional[float]=None,
         penalize_size:Optional[float]=None,
         penalize_exceeding_limit:Optional[float]=None,
+        inherit_max_atime:bool=True,
     ):
         self.store = store
         self.penalize_exceeding_limit = penalize_exceeding_limit
+        self.inherit_max_atime = inherit_max_atime
         self._executor = executor
 
         class StorePathNode(self.BaseStorePathNode):
@@ -74,7 +77,10 @@ class GarbageGraph:
                         _nix_store_path,
                         _self.path,
                     ))
-                return _self._max_atime
+                if self.inherit_max_atime:
+                    return max(_self._max_atime or 0, _self._inherited_max_atime or 0)
+                else:
+                    return _self._max_atime
 
             @property
             def substitutable(_self):
@@ -246,6 +252,18 @@ class GarbageGraph:
         ref_idxs = frozenset((t for _, t, _ in self.graph.out_edges(idx)))
         self.graph.remove_node(idx)
         del self.path_index_mapping[node_data.path]
+
+        if self.inherit_max_atime:
+            # ensure our direct references inherit our max_atime
+            # before we go (a path's atime is irrelevant until its
+            # referrers have been deleted so this should be the
+            # only place we need to propagate atimes)
+            for ref_idx in ref_idxs:
+                ref_spn = self.graph[ref_idx]
+                ref_spn._inherited_max_atime = max(
+                    node_data.max_atime or 0,
+                    ref_spn._inherited_max_atime or 0,
+                )
 
         # this shouldn't require any locking as long as each task only
         # references one unique StorePathNode

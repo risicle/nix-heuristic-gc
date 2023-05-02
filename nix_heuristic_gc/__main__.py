@@ -121,6 +121,20 @@ def main():
     )
 
     parser.add_argument(
+        "--inherit-atime",
+        action=argparse.BooleanOptionalAction,
+        default=False,
+        help="Whether recent-usage calculations should take into account recent "
+        "usage of referring paths. The idea of this being to avoid removal of "
+        "packages which may not *themselves* have been accessed recently, but "
+        "may still have been required by a path that *was* accessed recently. "
+        "This can only use information from paths that still exist at time of "
+        "invocation, so repeated calls for small deletions will produce less "
+        "accurate results than a single call for a larger deletion which has "
+        "more information to work with.",
+    )
+
+    parser.add_argument(
         "--dry-run",
         default=False,
         action=argparse.BooleanOptionalAction,

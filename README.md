@@ -31,14 +31,14 @@ accessed (or more easily replaceable) store paths.
 ## Usage
 
 ```
-usage: nix-heuristic-gc [-h]
+usage: nix_heuristic_gc [-h]
                         [--penalize-drvs | --no-penalize-drvs | --penalize-drvs-weight WEIGHT]
                         [--penalize-substitutable | --no-penalize-substitutable | --penalize-substitutable-weight WEIGHT]
                         [--penalize-inodes | --no-penalize-inodes | --penalize-inodes-weight WEIGHT]
                         [--penalize-size | --no-penalize-size | --penalize-size-weight WEIGHT]
                         [--penalize-exceeding-limit | --no-penalize-exceeding-limit | --penalize-exceeding-limit-weight WEIGHT]
-                        [--dry-run | --no-dry-run] [--threads THREADS] [--version]
-                        [--verbose | --quiet]
+                        [--inherit-atime | --no-inherit-atime] [--dry-run | --no-dry-run]
+                        [--threads THREADS] [--version] [--verbose | --quiet]
                         limit
 
 delete the least recently used or most easily replaced nix store paths based on customizable
@@ -95,6 +95,15 @@ options:
                         --penalize-exceeding-limit flag applies a WEIGHT of 5. This penalizes
                         path selections that would cause more deletion than requested by limit
                         proportional to the overshoot.
+  --inherit-atime, --no-inherit-atime
+                        Whether recent-usage calculations should take into account recent usage
+                        of referring paths. The idea of this being to avoid removal of packages
+                        which may not *themselves* have been accessed recently, but may still
+                        have been required by a path that *was* accessed recently. This can
+                        only use information from paths that still exist at time of invocation,
+                        so repeated calls for small deletions will produce less accurate
+                        results than a single call for a larger deletion which has more
+                        information to work with. (default: False)
   --dry-run, --no-dry-run
                         Don't actually delete any paths, but print list of paths that would be
                         deleted to stdout. (default: False)

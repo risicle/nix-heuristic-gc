@@ -33,6 +33,7 @@ def nix_heuristic_gc(
     penalize_inodes:int=0,
     penalize_size:int=0,
     penalize_exceeding_limit:int=0,
+    inherit_atime:bool=False,
     threads:Optional[int]=None,
     dry_run:bool=True,
 ):
@@ -49,6 +50,7 @@ def nix_heuristic_gc(
         store=store,
         limit_unit=limit.unit,
         executor=executor,
+        inherit_max_atime=inherit_atime,
         penalize_substitutable=_unfriendly_weight(penalize_substitutable, 1e5),
         penalize_drvs=_unfriendly_weight(penalize_drvs, 1e5),
         penalize_inodes=_unfriendly_weight(penalize_inodes, 1e6),
