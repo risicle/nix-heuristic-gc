@@ -60,7 +60,7 @@ class GarbageGraph:
 
             @property
             def inodes(_self):
-                if _self._max_atime is None:
+                if _self._inodes is None:
                     _self._max_atime, _self._inodes = path_stat_agg(path_join(
                         _nix_store_path,
                         _self.path,
@@ -69,7 +69,7 @@ class GarbageGraph:
 
             @property
             def max_atime(_self):
-                if _self._inodes is None:
+                if _self._max_atime is None:
                     _self._max_atime, _self._inodes = path_stat_agg(path_join(
                         _nix_store_path,
                         _self.path,
