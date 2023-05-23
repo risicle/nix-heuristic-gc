@@ -152,8 +152,21 @@ class GarbageGraph:
             action=libstore.GCAction.GCReturnDead,
         )
 
+        self.invalid_paths = set()
+
+        def store_path_or_none(p):
+            try:
+                return libstore.StorePath(path_split(str(p))[1])
+            except RuntimeError:
+                self.invalid_paths.add(p)
+                return None
+
         garbage_store_path_set = {
-            libstore.StorePath(path_split(str(p))[1]) for p in garbage_path_set
+            x for x in (
+                store_path_or_none(p)
+                for p in garbage_path_set
+            )
+            if x is not None
         }
         logger.info("topologically sorting paths")
         garbage_store_paths_sorted = self.store.topo_sort_paths(garbage_store_path_set)
@@ -161,14 +174,16 @@ class GarbageGraph:
         # not (necessarily) a DAG due to DRV_OUTPUT and OUTPUT_DRV edges
         self.graph = rx.PyDiGraph()
         self.path_index_mapping = {}
-        self.invalid_paths = set()
 
         logger.info("building graph")
         for store_path in reversed(garbage_store_paths_sorted):
             try:
                 path_info = self.store.query_path_info(store_path)
             except RuntimeError:
-                self.invalid_paths.add(str(store_path))
+                self.invalid_paths.add(path_join(
+                    _nix_store_path,
+                    str(store_path),
+                ))
             else:
                 node_data = self.StorePathNode(
                     str(path_info.path),
