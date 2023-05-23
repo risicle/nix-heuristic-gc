@@ -18,6 +18,7 @@
       pkgs.boost
       pkgs.nix
     ] ++ pkgs.lib.optionals forTest [
+      pythonPackages.pytest
     ] ++ pkgs.lib.optionals forDev [
       pythonPackages.ipython
       pythonPackages.matplotlib
@@ -43,5 +44,12 @@
       pythonPackages.humanfriendly
       pythonPackages.retworkx
     ];
+
+    checkInputs = [
+      pythonPackages.pytestCheckHook
+    ];
+    preCheck = ''
+      mv nix_heuristic_gc .nix_heuristic_gc
+    '';
   };
 }

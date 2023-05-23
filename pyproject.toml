@@ -7,10 +7,6 @@ requires = [
 ]
 build-backend = "setuptools.build_meta"
 
-[tool.cibuildwheel]
-test-command = "python {project}/tests/test.py"
-test-skip = "*universal2:arm64"
-
 [tool.ruff]
 extend-select = [
   "B",   # flake8-bugbear
@@ -23,3 +19,6 @@ extend-ignore = [
   "E501",   # Line too long
 ]
 target-version = "py37"
+
+[tool.pytest.ini_options]
+testpaths = "tests"
