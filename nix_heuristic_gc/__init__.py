@@ -57,6 +57,14 @@ def nix_heuristic_gc(
         penalize_size=_unfriendly_weight(penalize_size, 1e-3),
         penalize_exceeding_limit=_unfriendly_weight(penalize_exceeding_limit, 5e5),
     )
+
+    if garbage_graph.invalid_paths:
+        logger.info(
+            "Unable to handle invalid paths %s - use standard nix tools to "
+            "remove these.",
+            garbage_graph.invalid_paths,
+        )
+
     logger.info("selecting store paths for removal")
     logger.debug("using limit of %s", limit)
     to_reclaim = garbage_graph.remove_to_limit(limit.value)
