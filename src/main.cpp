@@ -46,6 +46,7 @@ PYBIND11_MODULE(libnixstore_wrapper, m) {
         })
         .def(py::self == py::self)
         .def(py::self != py::self)
+        .def(py::self < py::self)
         .def("__hash__", [](const nix::StorePath& store_path){
             return py::hash(py::str(store_path.to_string()));
         });
