@@ -14,7 +14,7 @@
       pythonPackages.humanfriendly
       pythonPackages.pybind11
       pythonPackages.setuptools
-      pythonPackages.retworkx
+      pythonPackages.rustworkx
       pkgs.boost
       pkgs.nix
     ] ++ pkgs.lib.optionals forTest [
@@ -42,7 +42,7 @@
     ];
     propagatedBuildInputs = [
       pythonPackages.humanfriendly
-      pythonPackages.retworkx
+      pythonPackages.rustworkx
     ];
 
     checkInputs = [

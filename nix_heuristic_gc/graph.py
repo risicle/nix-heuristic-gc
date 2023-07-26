@@ -9,7 +9,7 @@ from os.path import (
 )
 from typing import Optional
 
-import retworkx as rx
+import rustworkx as rx
 
 import nix_heuristic_gc.libnixstore_wrapper as libstore
 from nix_heuristic_gc.fs import path_stat_agg
