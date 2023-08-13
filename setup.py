@@ -19,7 +19,7 @@ ext_modules = [
     Pybind11Extension(
         "nix_heuristic_gc.libnixstore_wrapper",
         ["src/main.cpp"],
-        libraries = [ "nixstore" ],
+        libraries = [ "nixstore", "nixmain" ],
         # Example: passing in the version to the compiled code
         define_macros = [
             ('VERSION_INFO', __version__),

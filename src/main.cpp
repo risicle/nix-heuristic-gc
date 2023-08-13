@@ -6,6 +6,7 @@
 #define SYSTEM _STRINGIFY_MACRO(NIX_SYSTEM)
 #include <nix/callback.hh>
 #include <nix/gc-store.hh>
+#include <nix/shared.hh>
 #include <nix/store-cast.hh>
 #include <nix/store-api.hh>
 #include <nix/remote-store.hh>
@@ -27,6 +28,8 @@ PYBIND11_MODULE(libnixstore_wrapper, m) {
 
     auto get_event_loop = py::module_::import("asyncio.events").attr("get_event_loop");
     auto RuntimeError = py::module_::import("builtins").attr("RuntimeError");
+
+    nix::initNix();
 
     m.def("get_nix_store_path", [](){
         return nix::settings.nixStore;
