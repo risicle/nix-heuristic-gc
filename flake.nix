@@ -11,6 +11,7 @@
       pkgs = nixpkgs.legacyPackages.${system};
       nhgc = import ./default.nix { inherit pkgs system; };
     in {
+      packages.nix-heuristic-gc = nhgc.pkg;
       packages.default = nhgc.pkg;
     });
 }
