@@ -1,6 +1,6 @@
 { pkgs ? import <nixpkgs> {}
 , system ? builtins.currentSystem
-, pythonPackages ? pkgs.python310Packages
+, pythonPackages ? pkgs.python311Packages
 , forTest ? true
 , forDev ? true
 }:
