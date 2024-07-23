@@ -29,6 +29,8 @@ PYBIND11_MODULE(libnixstore_wrapper, m) {
     auto get_event_loop = py::module_::import("asyncio.events").attr("get_event_loop");
     auto RuntimeError = py::module_::import("builtins").attr("RuntimeError");
 
+    py::register_exception<nix::MissingRealisation>(m, "MissingRealisation", PyExc_RuntimeError);
+
     nix::initNix();
 
     m.def("get_nix_store_path", [](){
