@@ -213,23 +213,26 @@ class GarbageGraph:
             logger.info("populating output-drv or drv-output edges")
             for path, idx in self.path_index_mapping.items():
                 if path.endswith(".drv"):
-                    for output in self.store.query_derivation_outputs(
-                        libstore.StorePath(path),
-                    ):
-                        output_idx = self.path_index_mapping.get(str(output))
-                        if output_idx is not None:
-                            if _gc_keep_derivations:
-                                self.graph.add_edge(
-                                    output_idx,
-                                    idx,
-                                    self.EdgeType.OUTPUT_DRV,
-                                )
-                            if _gc_keep_outputs:
-                                self.graph.add_edge(
-                                    idx,
-                                    output_idx,
-                                    self.EdgeType.DRV_OUTPUT,
-                                )
+                    try:
+                        for output in self.store.query_derivation_outputs(
+                            libstore.StorePath(path),
+                        ):
+                            output_idx = self.path_index_mapping.get(str(output))
+                            if output_idx is not None:
+                                if _gc_keep_derivations:
+                                    self.graph.add_edge(
+                                        output_idx,
+                                        idx,
+                                        self.EdgeType.OUTPUT_DRV,
+                                    )
+                                if _gc_keep_outputs:
+                                    self.graph.add_edge(
+                                        idx,
+                                        output_idx,
+                                        self.EdgeType.DRV_OUTPUT,
+                                    )
+                    except libstore.MissingRealisation:
+                        pass
 
         logger.debug("gathering nodes for heap")
         pseudo_root_idxs = {
