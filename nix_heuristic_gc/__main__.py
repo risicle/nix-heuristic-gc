@@ -73,12 +73,12 @@ def main():
     _add_penalize_args(
         parser.add_mutually_exclusive_group(),
         "substitutable",
-        True,
+        False,
         _weighting_help_text(
             "Prefer choosing paths for deletion that are substitutable from a "
             "binary cache",
             "--penalize-substitutable",
-            "On by default, this can slow down the path selection process for "
+            "Disabled by default, this can slow down the path selection process for "
             "large collections due to the mass querying of binary cache(s)",
         )
     )

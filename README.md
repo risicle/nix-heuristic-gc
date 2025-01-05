@@ -65,7 +65,7 @@ options:
   --penalize-substitutable-weight WEIGHT
                         Prefer choosing paths for deletion that are substitutable from a binary
                         cache, with weighting WEIGHT typically being a value from 1 (weak) to
-                        10 (strong). --penalize-substitutable flag applies a WEIGHT of 5. On by
+                        10 (strong). --penalize-substitutable flag applies a WEIGHT of 5. Disabled by
                         default, this can slow down the path selection process for large
                         collections due to the mass querying of binary cache(s).
   --penalize-inodes
