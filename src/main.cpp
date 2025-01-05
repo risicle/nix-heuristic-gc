@@ -10,6 +10,7 @@
 #include <nix/store-cast.hh>
 #include <nix/store-api.hh>
 #include <nix/remote-store.hh>
+#include <nix/realisation.hh>
 #include <nix/local-store.hh>
 #include <nix/local-fs-store.hh>
 #undef SYSTEM

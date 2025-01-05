@@ -9,6 +9,11 @@
     name = "nix-heuristic-gc-env";
 
     NIX_SYSTEM = system;
+    NIX_CFLAGS_COMPILE = [
+      # due to references to top-level headers in sub-dir
+      # https://github.com/NixOS/nix/blob/12bb8cdd381156456a712e4a5a8af3b6bc852eab/src/libutil/signature/signer.hh#L3
+      "-I${pkgs.lib.getDev pkgs.nix}/include/nix"
+    ];
 
     buildInputs = [
       pythonPackages.humanfriendly
@@ -33,6 +38,11 @@
     src = pkgs.nix-gitignore.gitignoreSource ["*.nix" "flake.lock"] ./.;
 
     NIX_SYSTEM = system;
+    NIX_CFLAGS_COMPILE = [
+      # due to references to top-level headers in sub-dir
+      # https://github.com/NixOS/nix/blob/12bb8cdd381156456a712e4a5a8af3b6bc852eab/src/libutil/signature/signer.hh#L3
+      "-I${pkgs.lib.getDev pkgs.nix}/include/nix"
+    ];
 
     buildInputs = [
       pkgs.boost

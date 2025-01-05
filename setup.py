@@ -25,6 +25,7 @@ ext_modules = [
             ('VERSION_INFO', __version__),
             ('NIX_SYSTEM', NIX_SYSTEM),
         ],
+        cxx_std = "20",
     ),
 ]
 
