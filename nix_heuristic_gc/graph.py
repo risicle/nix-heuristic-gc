@@ -306,7 +306,7 @@ class GarbageGraph:
 
         limit_remaining = limit - limit_removed
 
-        for _ in range(len(self.heap)):
+        for _ in range(len(self.heap) + 1):  # +1 for when all candidates over limit
             candidate_heapscore, candidate_idx = self.heap[0]
             candidate_spn = self.graph[candidate_idx]
             if candidate_spn.limit_measurement <= limit_remaining:
@@ -343,7 +343,7 @@ class GarbageGraph:
         else:
             raise AssertionError(
                 "Performed correction shuffle more times than there are "
-                "items in heap. This should not be possible."
+                "items in heap + 1. This should not be possible."
             )
 
     def remove_to_limit(self, limit:int):
