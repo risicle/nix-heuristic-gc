@@ -1,6 +1,7 @@
 { pkgs ? import <nixpkgs> {}
 , system ? builtins.currentSystem
 , pythonPackages ? pkgs.python3Packages
+, nixComponents ? pkgs.nixVersions.nixComponents_2_29
 , forTest ? true
 , forDev ? true
 }:
@@ -9,19 +10,15 @@
     name = "nix-heuristic-gc-env";
 
     NIX_SYSTEM = system;
-    NIX_CFLAGS_COMPILE = [
-      # due to references to top-level headers in sub-dir
-      # https://github.com/NixOS/nix/blob/12bb8cdd381156456a712e4a5a8af3b6bc852eab/src/libutil/signature/signer.hh#L3
-      "-I${pkgs.lib.getDev pkgs.nix}/include/nix"
-    ];
 
     buildInputs = [
       pythonPackages.humanfriendly
       pythonPackages.pybind11
       pythonPackages.setuptools
       pythonPackages.rustworkx
+      nixComponents.nix-store
+      nixComponents.nix-main
       pkgs.boost
-      pkgs.nix
     ] ++ pkgs.lib.optionals forTest [
       pythonPackages.pytest
     ] ++ pkgs.lib.optionals forDev [
@@ -40,15 +37,11 @@
     format = "setuptools";
 
     NIX_SYSTEM = system;
-    NIX_CFLAGS_COMPILE = [
-      # due to references to top-level headers in sub-dir
-      # https://github.com/NixOS/nix/blob/12bb8cdd381156456a712e4a5a8af3b6bc852eab/src/libutil/signature/signer.hh#L3
-      "-I${pkgs.lib.getDev pkgs.nix}/include/nix"
-    ];
 
     buildInputs = [
       pkgs.boost
-      pkgs.nix
+      nixComponents.nix-store
+      nixComponents.nix-main
       pythonPackages.pybind11
       pythonPackages.setuptools
     ];
