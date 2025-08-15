@@ -37,6 +37,8 @@
     version = pkgs.lib.removeSuffix "\n" (builtins.readFile ./VERSION);
     src = pkgs.nix-gitignore.gitignoreSource ["*.nix" "flake.lock"] ./.;
 
+    format = "setuptools";
+
     NIX_SYSTEM = system;
     NIX_CFLAGS_COMPILE = [
       # due to references to top-level headers in sub-dir
