@@ -4,6 +4,8 @@
 
 #define _STRINGIFY_MACRO(x) #x
 #define SYSTEM _STRINGIFY_MACRO(NIX_SYSTEM)
+
+#ifdef NIX_LT_2_28
 #include <nix/callback.hh>
 #include <nix/gc-store.hh>
 #include <nix/shared.hh>
@@ -13,6 +15,19 @@
 #include <nix/realisation.hh>
 #include <nix/local-store.hh>
 #include <nix/local-fs-store.hh>
+#else /* ndef NIX_LT_2_28 */
+#include <nix/util/callback.hh>
+#include <nix/store/gc-store.hh>
+#include <nix/main/shared.hh>
+#include <nix/store/store-cast.hh>
+#include <nix/store/store-api.hh>
+#include <nix/store/remote-store.hh>
+#include <nix/store/realisation.hh>
+#include <nix/store/local-store.hh>
+#include <nix/store/local-fs-store.hh>
+#include <nix/store/store-open.hh>
+#endif /* ndef NIX_LT_2_28 */
+
 #undef SYSTEM
 
 #define STRINGIFY(x) #x
