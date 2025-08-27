@@ -31,7 +31,7 @@ accessed (or more easily replaceable) store paths.
 ## Usage
 
 ```
-usage: nix_heuristic_gc [-h]
+usage: nix-heuristic-gc [-h]
                         [--penalize-drvs | --no-penalize-drvs | --penalize-drvs-weight WEIGHT]
                         [--penalize-substitutable | --no-penalize-substitutable | --penalize-substitutable-weight WEIGHT]
                         [--penalize-inodes | --no-penalize-inodes | --penalize-inodes-weight WEIGHT]
