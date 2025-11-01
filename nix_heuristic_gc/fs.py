@@ -3,7 +3,7 @@ from os import scandir, stat, DirEntry
 from stat import S_ISDIR
 
 
-AggStatTuple = tuple[int,int]
+AggStatTuple = tuple[int,int,int]
 
 
 def direntry_stat_agg(direntry:DirEntry) -> AggStatTuple:
@@ -14,22 +14,23 @@ def direntry_stat_agg(direntry:DirEntry) -> AggStatTuple:
             # walking them
             return dir_stat_agg(direntry.path)
 
-        return direntry.stat(follow_symlinks=False).st_atime, 1
+        s = direntry.stat(follow_symlinks=False)
+        return s.st_atime, 1, s.st_size
     except PermissionError:
-        return 0, 1
+        return 0, 1, 0
 
 
 def _stat_agg_reduction(a:AggStatTuple, b:AggStatTuple) -> AggStatTuple:
-    atime_a, inodes_a = a
-    atime_b, inodes_b = b
-    return max(atime_a, atime_b), inodes_a + inodes_b
+    atime_a, inodes_a, size_a = a
+    atime_b, inodes_b, size_b = b
+    return max(atime_a, atime_b), inodes_a + inodes_b, size_a + size_b
 
 
 def dir_stat_agg(path:str) -> AggStatTuple:
     return reduce(
         _stat_agg_reduction,
         (direntry_stat_agg(direntry) for direntry in scandir(path)),
-        (0, 1),
+        (0, 1, 0),
     )
 
 
@@ -38,4 +39,4 @@ def path_stat_agg(path:str) -> AggStatTuple:
     if S_ISDIR(s.st_mode):
         return dir_stat_agg(path)
 
-    return s.st_atime, 1
+    return s.st_atime, 1, s.st_size

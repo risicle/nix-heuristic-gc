@@ -18,7 +18,7 @@ def _raise_if_exc(val):
 def test_basic_init(
     mock_path_stat_agg,
 ):
-        mock_path_stat_agg.return_value = 123, 123
+        mock_path_stat_agg.return_value = 123, 123, 123
 
         mock_store = mock.create_autospec(
             libstore.Store,

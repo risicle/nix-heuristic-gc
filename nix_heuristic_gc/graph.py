@@ -32,6 +32,7 @@ class GarbageGraph:
         _inherited_max_atime:Optional[int] = None
         _max_atime:Optional[int] = None
         _inodes:Optional[int] = None
+        _fs_size:Optional[int] = None
         _substitutable:Optional[int] = None
 
     class EdgeType(enum.Enum):
@@ -64,16 +65,25 @@ class GarbageGraph:
             @property
             def inodes(_self):
                 if _self._inodes is None:
-                    _self._max_atime, _self._inodes = path_stat_agg(path_join(
+                    _self._max_atime, _self._inodes, _self._fs_size = path_stat_agg(path_join(
                         _nix_store_path,
                         _self.path,
                     ))
                 return _self._inodes
 
             @property
+            def fs_size(_self):
+                if _self._fs_size is None:
+                    _self._max_atime, _self._inodes, _self._fs_size = path_stat_agg(path_join(
+                        _nix_store_path,
+                        _self.path,
+                    ))
+                return _self._fs_size
+
+            @property
             def max_atime(_self):
                 if _self._max_atime is None:
-                    _self._max_atime, _self._inodes = path_stat_agg(path_join(
+                    _self._max_atime, _self._inodes, _self._fs_size = path_stat_agg(path_join(
                         _nix_store_path,
                         _self.path,
                     ))
