@@ -28,7 +28,7 @@ def _unfriendly_weight(
 
 def nix_heuristic_gc(
     limit:Quantity,
-    penalize_substitutable:int=5,
+    penalize_substitutable:int=0,
     penalize_drvs:int=0,
     penalize_inodes:int=0,
     penalize_size:int=0,
