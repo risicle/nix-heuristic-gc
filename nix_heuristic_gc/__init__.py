@@ -28,6 +28,7 @@ def _unfriendly_weight(
 
 def nix_heuristic_gc(
     limit:Quantity,
+    penalize_invalid:int=5,
     penalize_substitutable:int=0,
     penalize_drvs:int=0,
     penalize_inodes:int=0,
@@ -56,6 +57,7 @@ def nix_heuristic_gc(
         penalize_inodes=_unfriendly_weight(penalize_inodes, 1e6),
         penalize_size=_unfriendly_weight(penalize_size, 1e-3),
         penalize_exceeding_limit=_unfriendly_weight(penalize_exceeding_limit, 5e5),
+        penalize_invalid=_unfriendly_weight(penalize_invalid, 1e6),
     )
 
     if garbage_graph.very_invalid_paths:

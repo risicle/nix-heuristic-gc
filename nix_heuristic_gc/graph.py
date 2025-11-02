@@ -47,6 +47,7 @@ class GarbageGraph:
         store:libstore.Store,
         limit_unit:QuantityUnit,
         executor:Executor=NaiveExecutor(),
+        penalize_invalid:Optional[float]=None,
         penalize_substitutable:Optional[float]=None,
         penalize_drvs:Optional[float]=None,
         penalize_inodes:Optional[float]=None,
@@ -111,6 +112,8 @@ class GarbageGraph:
             @property
             def score(_self):
                 s = float(_self.max_atime)
+                if penalize_invalid is not None and not _self.valid:
+                    s -= penalize_invalid
                 if penalize_drvs is not None and _self.path.endswith(".drv"):
                     s -= penalize_drvs
                 if penalize_substitutable is not None and _self.substitutable:
