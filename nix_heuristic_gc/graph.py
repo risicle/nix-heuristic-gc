@@ -28,7 +28,7 @@ class GarbageGraph:
     @dataclass(slots=True)
     class BaseStorePathNode:
         path: str
-        nar_size: int
+        nar_size: Optional[int]
         _inherited_max_atime:Optional[int] = None
         _max_atime:Optional[int] = None
         _inodes:Optional[int] = None
@@ -95,10 +95,18 @@ class GarbageGraph:
             @property
             def substitutable(_self):
                 if _self._substitutable is None:
-                    _self._substitutable = bool(self.store.query_substitutable_paths(
+                    _self._substitutable = _self.valid and bool(self.store.query_substitutable_paths(
                         {libstore.StorePath(_self.path)},
                     ))
                 return _self._substitutable
+
+            @property
+            def valid(_self):
+                return _self.nar_size is not None
+
+            @property
+            def size(_self):
+                return _self.nar_size if _self.nar_size is not None else _self.fs_size
 
             @property
             def score(_self):
@@ -110,24 +118,24 @@ class GarbageGraph:
                 if penalize_inodes is not None:
                     s -= penalize_inodes * _self.inodes_score
                 if penalize_size is not None:
-                    s -= penalize_size * _self.nar_size_score
+                    s -= penalize_size * _self.size_score
                 return s
 
             if limit_unit == QuantityUnit.BYTES:
                 @property
                 def limit_measurement(_self):
-                    return _self.nar_size
+                    return _self.size
 
                 @property
                 def inodes_score(_self):
-                    # divide by nar_size - we want to free many inodes before
-                    # we hit the limit, and the limit is based on nar_size.
-                    # add one to nar_size to avoid zero-division
-                    return _self.inodes / (_self.nar_size+1)
+                    # divide by size - we want to free many inodes before
+                    # we hit the limit, and the limit is based on size.
+                    # add one to size to avoid zero-division
+                    return _self.inodes / (_self.size+1)
 
                 @property
-                def nar_size_score(_self):
-                    return _self.nar_size
+                def size_score(_self):
+                    return _self.size
             elif limit_unit == QuantityUnit.INODES:
                 @property
                 def limit_measurement(_self):
@@ -138,11 +146,11 @@ class GarbageGraph:
                     return _self.inodes
 
                 @property
-                def nar_size_score(_self):
+                def size_score(_self):
                     # divide by inodes - we want to free many bytes before
                     # we hit the limit, and the limit is based on inodes.
                     # add one to inodes to avoid zero-division
-                    return _self.nar_size / (_self.inodes+1)
+                    return _self.size / (_self.inodes+1)
             else:
                 raise ValueError(f"Don't know how to measure {limit_unit!r}")
 
@@ -162,13 +170,13 @@ class GarbageGraph:
             action=libstore.GCAction.GCReturnDead,
         )
 
-        self.invalid_paths = set()
+        self.very_invalid_paths = set()
 
         def store_path_or_none(p):
             try:
                 return libstore.StorePath(path_split(str(p))[1])
             except RuntimeError:
-                self.invalid_paths.add(p)
+                self.very_invalid_paths.add(p)
                 return None
 
         garbage_store_path_set = {
@@ -189,25 +197,29 @@ class GarbageGraph:
         for store_path in reversed(garbage_store_paths_sorted):
             try:
                 path_info = self.store.query_path_info(store_path)
-            except RuntimeError:
-                self.invalid_paths.add(path_join(
-                    _nix_store_path,
-                    str(store_path),
-                ))
-            else:
+                str_path = str(path_info.path)
                 node_data = self.StorePathNode(
-                    str(path_info.path),
+                    str_path,
                     path_info.nar_size,
                 )
-                node_index = self.graph.add_node(node_data)
-                self.path_index_mapping[str(path_info.path)] = node_index
+            except RuntimeError:
+                path_info = None
+                str_path = str(store_path)
+                node_data = self.StorePathNode(
+                    str_path,
+                    None,
+                )
 
+            node_index = self.graph.add_node(node_data)
+            self.path_index_mapping[str_path] = node_index
+
+            if path_info is not None:
                 for ref_sp in path_info.references:
                     ref_node_index = self.path_index_mapping.get(str(ref_sp))
                     if ref_node_index == node_index:
                         logger.debug(
                             "omitting self-referencing edge from path %s",
-                            str(path_info.path),
+                            str_path,
                         )
                     elif ref_node_index is not None:
                         self.graph.add_edge(
@@ -222,13 +234,13 @@ class GarbageGraph:
         if _gc_keep_derivations or _gc_keep_outputs:
             logger.info("populating output-drv or drv-output edges")
             for path, idx in self.path_index_mapping.items():
-                if path.endswith(".drv"):
+                if self.graph[idx].valid and path.endswith(".drv"):
                     try:
                         for output in self.store.query_derivation_outputs(
                             libstore.StorePath(path),
                         ):
                             output_idx = self.path_index_mapping.get(str(output))
-                            if output_idx is not None:
+                            if output_idx is not None and self.graph[output_idx].valid:
                                 if _gc_keep_derivations:
                                     self.graph.add_edge(
                                         output_idx,
@@ -252,6 +264,7 @@ class GarbageGraph:
             logger.info("bulk querying path substitutability")
             substitutable_paths = self.store.query_substitutable_paths({
                 libstore.StorePath(self.graph[i].path) for i in pseudo_root_idxs
+                if self.graph[i].valid
             })
             for i in pseudo_root_idxs:
                 self.graph[i]._substitutable = (

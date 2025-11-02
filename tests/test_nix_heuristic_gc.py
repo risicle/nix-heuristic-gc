@@ -19,6 +19,6 @@ def test_empty_local_store(caplog, dry_run, unit):
         threads=0,
     )
 
-    assert "requesting deletion of 0 store paths, total nar_size 0 bytes, 0 inodes" in caplog.text
+    assert "requesting deletion of 0 store paths, total size 0 bytes, 0 inodes" in caplog.text
     assert ("(not) requesting deletion" in caplog.text) is dry_run
     assert "ran out of zero-reference paths to remove" in caplog.text

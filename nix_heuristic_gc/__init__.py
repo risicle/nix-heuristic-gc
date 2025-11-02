@@ -58,11 +58,11 @@ def nix_heuristic_gc(
         penalize_exceeding_limit=_unfriendly_weight(penalize_exceeding_limit, 5e5),
     )
 
-    if garbage_graph.invalid_paths:
+    if garbage_graph.very_invalid_paths:
         logger.info(
             "Unable to handle invalid paths %s - use standard nix tools to "
             "remove these.",
-            garbage_graph.invalid_paths,
+            garbage_graph.very_invalid_paths,
         )
 
     logger.info("selecting store paths for removal")
@@ -70,11 +70,11 @@ def nix_heuristic_gc(
     to_reclaim = garbage_graph.remove_to_limit(limit.value)
 
     logger.info(
-        "%(maybe_not)srequesting deletion of %(count)s store paths, total nar_size %(size)s, %(inodes)s inodes",
+        "%(maybe_not)srequesting deletion of %(count)s store paths, total size %(size)s, %(inodes)s inodes",
         {
             "maybe_not": "(not) " if dry_run else "",
             "count": len(to_reclaim),
-            "size": format_size(sum(spn.nar_size for spn in to_reclaim), binary=True),
+            "size": format_size(sum(spn.size for spn in to_reclaim), binary=True),
             "inodes": sum(spn.inodes for spn in to_reclaim),
         },
     )

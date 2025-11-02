@@ -102,9 +102,9 @@ def test_basic_init(
             mock.call("/nix/store/cccccccccccccccccccccccccccccccc-ccc-3.3.3"),
             mock.call("/nix/store/dddddddddddddddddddddddddddddddd-ddd-4.4.4"),
             mock.call("/nix/store/55555555555555555555555555555555-555-5.5.5"),
+            mock.call("/nix/store/77777777777777777777777777777777-777-7.7.7"),
         ]
 
-        assert garbage_graph.invalid_paths == {
+        assert garbage_graph.very_invalid_paths == {
             "/nix/store/666-6.6.6",
-            "/nix/store/77777777777777777777777777777777-777-7.7.7",
         }
