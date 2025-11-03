@@ -62,6 +62,17 @@ def main():
 
     _add_penalize_args(
         parser.add_mutually_exclusive_group(),
+        "invalid",
+        True,
+        _weighting_help_text(
+            "Prefer choosing 'invalid' paths for deletion",
+            "--penalize-invalid",
+            "Enabled by default. Invalid paths are usually the result of a failed "
+            "build and generally have no use other than debugging",
+        )
+    )
+    _add_penalize_args(
+        parser.add_mutually_exclusive_group(),
         "drvs",
         False,
         _weighting_help_text(
