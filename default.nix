@@ -24,7 +24,6 @@
     ] ++ pkgs.lib.optionals forDev [
       pythonPackages.ipython
       pythonPackages.matplotlib
-      pkgs.pwndbg
       pkgs.less
     ];
   };
