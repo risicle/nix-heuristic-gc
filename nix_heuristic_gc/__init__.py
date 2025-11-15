@@ -1,7 +1,7 @@
 from concurrent.futures import ThreadPoolExecutor
 import logging
 from os.path import join as path_join
-from typing import Optional
+from typing import Literal, Optional
 
 from humanfriendly import format_size
 
@@ -34,6 +34,9 @@ def nix_heuristic_gc(
     penalize_inodes:int=0,
     penalize_size:int=0,
     penalize_exceeding_limit:int=0,
+    collect_invalid:bool|Literal["only"]=True,
+    collect_substitutable:bool|Literal["only"]=True,
+    collect_drvs:bool|Literal["only"]=True,
     inherit_atime:bool=False,
     threads:Optional[int]=None,
     dry_run:bool=True,
@@ -58,6 +61,9 @@ def nix_heuristic_gc(
         penalize_size=_unfriendly_weight(penalize_size, 1e-3),
         penalize_exceeding_limit=_unfriendly_weight(penalize_exceeding_limit, 5e5),
         penalize_invalid=_unfriendly_weight(penalize_invalid, 1e6),
+        collect_invalid=collect_invalid,
+        collect_substitutable=collect_substitutable,
+        collect_drvs=collect_drvs,
     )
 
     if garbage_graph.very_invalid_paths:

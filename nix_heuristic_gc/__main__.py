@@ -4,9 +4,12 @@ def _add_penalize_args(
     name:str,
     default:bool,
     help:str="",
+    boolean_basic_desc:str|None=None,
     default_weight:int=5,
 ):
-    dest = f"penalize_{name.replace('-','_')}"
+    dest_sc = name.replace('-','_')
+    dest = f"penalize_{dest_sc}"
+
     grp.add_argument(
         f"--penalize-{name}",
         dest=dest,
@@ -27,6 +30,24 @@ def _add_penalize_args(
         metavar="WEIGHT",
         help=help,
     )
+
+    if boolean_basic_desc:
+        bool_dest = f"collect_{dest_sc}"
+        grp.add_argument(
+            f"--no-{name}",
+            dest=bool_dest,
+            action="store_false",
+            help=f"Don't choose {boolean_basic_desc} for deletion",
+        )
+        grp.add_argument(
+            f"--only-{name}",
+            dest=bool_dest,
+            action="store_const",
+            const="only",
+            help=f"Only choose {boolean_basic_desc} for deletion",
+        )
+        grp.set_defaults(**{bool_dest: True})
+
     if default:
         grp.set_defaults(**{dest: 5})
 
@@ -69,7 +90,8 @@ def main():
             "--penalize-invalid",
             "Enabled by default. Invalid paths are usually the result of a failed "
             "build and generally have no use other than debugging",
-        )
+        ),
+        "'invalid' paths",
     )
     _add_penalize_args(
         parser.add_mutually_exclusive_group(),
@@ -79,7 +101,8 @@ def main():
             "Prefer choosing .drv paths for deletion",
             "--penalize-drvs",
             ".drv files are usually easily regenerated and occupy an inode each",
-        )
+        ),
+        ".drv paths",
     )
     _add_penalize_args(
         parser.add_mutually_exclusive_group(),
@@ -91,7 +114,8 @@ def main():
             "--penalize-substitutable",
             "Disabled by default, this can slow down the path selection process for "
             "large collections due to the mass querying of binary cache(s)",
-        )
+        ),
+        "substitutable paths",
     )
     _add_penalize_args(
         parser.add_mutually_exclusive_group(),

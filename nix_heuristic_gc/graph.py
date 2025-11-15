@@ -7,7 +7,7 @@ from os.path import (
     join as path_join,
     split as path_split,
 )
-from typing import Optional
+from typing import Literal, Optional
 
 import rustworkx as rx
 
@@ -54,7 +54,17 @@ class GarbageGraph:
         penalize_size:Optional[float]=None,
         penalize_exceeding_limit:Optional[float]=None,
         inherit_max_atime:bool=True,
+        collect_invalid:bool|Literal["only"]=True,
+        collect_substitutable:bool|Literal["only"]=True,
+        collect_drvs:bool|Literal["only"]=True,
     ):
+        if sum(
+            1
+            for x in (collect_invalid, collect_substitutable, collect_drvs)
+            if x == "only"
+        ) > 1:
+            raise TypeError("Cannot specify 'only' for multiple arguments")
+
         self.store = store
         self.penalize_exceeding_limit = penalize_exceeding_limit
         self.inherit_max_atime = inherit_max_atime
@@ -106,6 +116,10 @@ class GarbageGraph:
                 return _self.nar_size is not None
 
             @property
+            def is_drv(_self):
+                return _self.path.endswith(".drv")
+
+            @property
             def size(_self):
                 return _self.nar_size if _self.nar_size is not None else _self.fs_size
 
@@ -114,7 +128,7 @@ class GarbageGraph:
                 s = float(_self.max_atime)
                 if penalize_invalid is not None and not _self.valid:
                     s -= penalize_invalid
-                if penalize_drvs is not None and _self.path.endswith(".drv"):
+                if penalize_drvs is not None and _self.is_drv:
                     s -= penalize_drvs
                 if penalize_substitutable is not None and _self.substitutable:
                     s -= penalize_substitutable
@@ -123,6 +137,25 @@ class GarbageGraph:
                 if penalize_size is not None:
                     s -= penalize_size * _self.size_score
                 return s
+
+            @property
+            def collection_allowed(_self):
+                if not (collect_invalid or _self.valid):
+                    return False
+                if collect_invalid == "only" and _self.valid:
+                    return False
+
+                if (not collect_substitutable) and _self.substitutable:
+                    return False
+                if collect_substitutable == "only" and not _self.substitutable:
+                    return False
+
+                if (not collect_drvs) and _self.is_drv:
+                    return False
+                if collect_drvs == "only" and not _self.is_drv:
+                    return False
+
+                return True
 
             if limit_unit == QuantityUnit.BYTES:
                 @property
@@ -263,7 +296,7 @@ class GarbageGraph:
         pseudo_root_idxs = {
             i for i in self.graph.node_indices() if self.graph.in_degree(i) == 0
         }
-        if penalize_substitutable:
+        if penalize_substitutable or collect_substitutable in (False, "only"):
             logger.info("bulk querying path substitutability")
             substitutable_paths = self.store.query_substitutable_paths({
                 libstore.StorePath(self.graph[i].path) for i in pseudo_root_idxs
@@ -278,14 +311,18 @@ class GarbageGraph:
         self.heap = []
         # this shouldn't require any locking as long as each task only
         # references one unique StorePathNode
-        for heap_tuple in self._executor.map(
-            self._get_heap_tuple,
+        for maybe_heap_tuple in self._executor.map(
+            self._get_maybe_heap_tuple,
             pseudo_root_idxs,
         ):
-            heapq.heappush(self.heap, heap_tuple)
+            if maybe_heap_tuple:
+                heapq.heappush(self.heap, maybe_heap_tuple)
 
-    def _get_heap_tuple(self, ref_idx):
-        return self.graph[ref_idx].score, ref_idx
+    def _get_maybe_heap_tuple(self, ref_idx):
+        if self.graph[ref_idx].collection_allowed:
+            return self.graph[ref_idx].score, ref_idx
+
+        return None
 
     def remove_heap_root(self):
         if not self.heap:
@@ -311,11 +348,12 @@ class GarbageGraph:
 
         # this shouldn't require any locking as long as each task only
         # references one unique StorePathNode
-        for heap_tuple in self._executor.map(
-            self._get_heap_tuple,
+        for maybe_heap_tuple in self._executor.map(
+            self._get_maybe_heap_tuple,
             (ref_idx for ref_idx in ref_idxs if self.graph.in_degree(ref_idx) == 0),
         ):
-            heapq.heappush(self.heap, heap_tuple)
+            if maybe_heap_tuple:
+                heapq.heappush(self.heap, maybe_heap_tuple)
 
         return node_data
 
@@ -384,7 +422,7 @@ class GarbageGraph:
                 limit_removed += node_data.limit_measurement
                 removed_node_data.append(node_data)
         except self.HeapEmptyError:
-            logger.warning("ran out of zero-reference paths to remove")
+            logger.warning("ran out of qualifying zero-reference paths to remove")
             if self.graph.num_nodes():
                 logger.warning(
                     "%(path_count)s remaining paths may have reference loops - "
