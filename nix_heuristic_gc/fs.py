@@ -27,15 +27,22 @@ def _stat_agg_reduction(a:AggStatTuple, b:AggStatTuple) -> AggStatTuple:
 
 
 def dir_stat_agg(path:str) -> AggStatTuple:
-    return reduce(
-        _stat_agg_reduction,
-        (direntry_stat_agg(direntry) for direntry in scandir(path)),
-        (0, 1, 0),
-    )
+    try:
+        return reduce(
+            _stat_agg_reduction,
+            (direntry_stat_agg(direntry) for direntry in scandir(path)),
+            (0, 1, 0),
+        )
+    except PermissionError:
+        return 0, 1, 0
 
 
 def path_stat_agg(path:str) -> AggStatTuple:
-    s = stat(path, follow_symlinks=False)
+    try:
+        s = stat(path, follow_symlinks=False)
+    except PermissionError:
+        return 0, 1, 0
+
     if S_ISDIR(s.st_mode):
         return dir_stat_agg(path)
 
