@@ -69,7 +69,7 @@ PYBIND11_MODULE(libnixstore_wrapper, m) {
         .def(py::self != py::self)
         .def(py::self < py::self)
         .def("__hash__", [](const nix::StorePath& store_path){
-            return py::hash(py::str(store_path.to_string()));
+            return std::hash<std::string_view>{}(store_path.to_string());
         });
 
     py::class_<nix::ValidPathInfo, std::shared_ptr<nix::ValidPathInfo>>(m, "ValidPathInfo")
