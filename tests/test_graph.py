@@ -107,7 +107,7 @@ def test_basic_init(
             ),
             "00000000000000000000000000000000-000-0.0.0.drv": RuntimeError("sorry"),
         }[str(store_path)])
-        mock_store.query_substitutable_paths.side_effect = lambda store_path_set: {
+        mock_store.query_substitutable_paths_interruptible.side_effect = lambda store_path_set: {
             libstore.StorePath("bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb-bbb-2.2.2"),
             libstore.StorePath("cccccccccccccccccccccccccccccccc-ccc-3.3.3"),
             libstore.StorePath("55555555555555555555555555555555-555-5.5.5"),
@@ -158,7 +158,7 @@ def test_basic_init(
             mock.call.query_path_info(libstore.StorePath("11111111111111111111111111111111-111-1.1.1")),
             mock.call.query_path_info(libstore.StorePath("00000000000000000000000000000000-000-0.0.0.drv")),
         ) + (() if collect_substitutable is True else (
-            mock.call.query_substitutable_paths({
+            mock.call.query_substitutable_paths_interruptible({
                 libstore.StorePath("55555555555555555555555555555555-555-5.5.5"),
                 libstore.StorePath("88888888888888888888888888888888-888-8.8.8.drv"),
                 libstore.StorePath("dddddddddddddddddddddddddddddddd-ddd-4.4.4"),
