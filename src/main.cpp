@@ -1,3 +1,7 @@
+#include <signal.h>
+
+#include <system_error>
+
 #include <pybind11/operators.h>
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
@@ -5,18 +9,8 @@
 #define _STRINGIFY_MACRO(x) #x
 #define SYSTEM _STRINGIFY_MACRO(NIX_SYSTEM)
 
-#ifdef NIX_LT_2_28
-#include <nix/callback.hh>
-#include <nix/gc-store.hh>
-#include <nix/shared.hh>
-#include <nix/store-cast.hh>
-#include <nix/store-api.hh>
-#include <nix/remote-store.hh>
-#include <nix/realisation.hh>
-#include <nix/local-store.hh>
-#include <nix/local-fs-store.hh>
-#else /* ndef NIX_LT_2_28 */
 #include <nix/util/callback.hh>
+#include <nix/util/signals-impl.hh>
 #include <nix/store/gc-store.hh>
 #include <nix/main/shared.hh>
 #include <nix/store/store-cast.hh>
@@ -26,15 +20,43 @@
 #include <nix/store/local-store.hh>
 #include <nix/store/local-fs-store.hh>
 #include <nix/store/store-open.hh>
-#endif /* ndef NIX_LT_2_28 */
 
 #undef SYSTEM
 
 #define STRINGIFY(x) #x
 #define MACRO_STRINGIFY(x) STRINGIFY(x)
 
-namespace py = pybind11;
+namespace nhgc {
+    // a call guard that temporarily re-activates libnix's signal handling, only
+    // worth using with long-running calls
+    class SigHandlerSwitcher {
+        nix::ReceiveInterrupts receive_interrupts;
 
+    public:
+        SigHandlerSwitcher() {
+            // an extract of nix::unix::startSignalHandlerThread, to allow us to
+            // effectively re-activate libnixmain's signal handling without
+            // launching another thread
+            sigset_t set;
+            sigemptyset(&set);
+            sigaddset(&set, SIGINT);
+            sigaddset(&set, SIGTERM);
+            sigaddset(&set, SIGHUP);
+            sigaddset(&set, SIGPIPE);
+            sigaddset(&set, SIGWINCH);
+            if (int ret = pthread_sigmask(SIG_BLOCK, &set, nullptr)) {
+                throw std::system_error(ret, std::generic_category(), "pthread_sigmask");
+            }
+        }
+
+        ~SigHandlerSwitcher() {
+            // python needs its signals back
+            nix::unix::restoreSignals();
+        }
+    };
+}
+
+namespace py = pybind11;
 
 PYBIND11_MODULE(libnixstore_wrapper, m) {
     m.doc() = R"pbdoc(
@@ -135,7 +157,7 @@ PYBIND11_MODULE(libnixstore_wrapper, m) {
             },
             py::arg("action") = nix::GCOptions::GCAction::gcReturnDead,
             py::arg("paths_to_delete") = py::none(),
-            py::call_guard<py::gil_scoped_release>()
+            py::call_guard<py::gil_scoped_release, nhgc::SigHandlerSwitcher>()
         ).def(
             "query_referrers",
             [](
@@ -199,9 +221,13 @@ PYBIND11_MODULE(libnixstore_wrapper, m) {
             &nix::Store::querySubstitutablePaths,
             py::call_guard<py::gil_scoped_release>()
         ).def(
+            "query_substitutable_paths_interruptible",
+            &nix::Store::querySubstitutablePaths,
+            py::call_guard<py::gil_scoped_release, nhgc::SigHandlerSwitcher>()
+        ).def(
             "topo_sort_paths",
             &nix::Store::topoSortPaths,
-            py::call_guard<py::gil_scoped_release>()
+            py::call_guard<py::gil_scoped_release, nhgc::SigHandlerSwitcher>()
         );
 
 #ifdef VERSION_INFO
@@ -209,4 +235,7 @@ PYBIND11_MODULE(libnixstore_wrapper, m) {
 #else
     m.attr("__version__") = "dev";
 #endif
+
+    // python needs its signals back
+    nix::unix::restoreSignals();
 }

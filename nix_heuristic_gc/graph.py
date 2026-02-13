@@ -298,7 +298,7 @@ class GarbageGraph:
         }
         if penalize_substitutable or collect_substitutable in (False, "only"):
             logger.info("bulk querying path substitutability")
-            substitutable_paths = self.store.query_substitutable_paths({
+            substitutable_paths = self.store.query_substitutable_paths_interruptible({
                 libstore.StorePath(self.graph[i].path) for i in pseudo_root_idxs
                 if self.graph[i].valid
             })
