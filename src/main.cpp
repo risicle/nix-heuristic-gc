@@ -10,6 +10,7 @@
 #define SYSTEM _STRINGIFY_MACRO(NIX_SYSTEM)
 
 #include <nix/util/callback.hh>
+#include <nix/util/signals.hh>
 #include <nix/util/signals-impl.hh>
 #include <nix/store/gc-store.hh>
 #include <nix/main/shared.hh>
@@ -20,6 +21,12 @@
 #include <nix/store/local-store.hh>
 #include <nix/store/local-fs-store.hh>
 #include <nix/store/store-open.hh>
+#if NIX_VERSION_MINOR >= 31
+#include <nix/store/globals.hh>
+#endif
+#if NIX_VERSION_MINOR >= 34
+#include <nix/store/local-fs-store.hh>
+#endif
 
 #undef SYSTEM
 
@@ -71,14 +78,33 @@ PYBIND11_MODULE(libnixstore_wrapper, m) {
 
     nix::initNix();
 
-    m.def("get_nix_store_path", [](){
-        return nix::settings.nixStore;
+    m.def("get_nix_store_path", []() {
+#if NIX_VERSION_MINOR >= 34
+      auto config = nix::resolveStoreConfig(nix::StoreReference{nix::settings.storeUri.get()});
+      try {
+        return dynamic_cast<nix::LocalFSStoreConfig &>(*config).realStoreDir.get().string();
+      } catch (std::bad_cast &) {
+        throw nix::UsageError(
+            "Store '%s' is not a store known to support garbage collection",
+            config->getReference().render(/*withParams=*/true));
+      }
+#else
+      return nix::settings.nixStore;
+#endif
     });
     m.def("get_gc_keep_derivations", []() -> bool {
-        return nix::settings.gcKeepDerivations;
+#if NIX_VERSION_MINOR >= 34
+      return nix::settings.getLocalSettings().getGCSettings().keepDerivations;
+#else
+      return nix::settings.gcKeepDerivations;
+#endif
     });
     m.def("get_gc_keep_outputs", []() -> bool {
-        return nix::settings.gcKeepOutputs;
+#if NIX_VERSION_MINOR >= 34
+      return nix::settings.getLocalSettings().getGCSettings().keepOutputs;
+#else
+      return nix::settings.gcKeepOutputs;
+#endif
     });
 
     py::class_<nix::StorePath>(m, "StorePath")
@@ -146,7 +172,11 @@ PYBIND11_MODULE(libnixstore_wrapper, m) {
                             } catch (const std::bad_cast& e) {
                                 throw nix::UsageError(
                                     "Store '%s' is not a store known to support garbage collection",
+#if NIX_VERSION_MINOR >= 31
+                                    store.config.getReference().render(/*withParams=*/true)
+#else
                                     store.getUri()
+#endif
                                 );
                             }
                         }
