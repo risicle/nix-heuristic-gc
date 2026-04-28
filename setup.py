@@ -18,7 +18,7 @@ with open("VERSION", "r") as r:
 
 def get_nix_version():
     version_string = subprocess.run(["pkg-config", "--modversion", "nix-store"],  capture_output=True, text=True).stdout.strip("\n")
-    return tuple(map(int, (version_string.split("."))))
+    return tuple(map(int, (version_string.split("+")[0].split("."))))
 
 nix_version = get_nix_version()
 
