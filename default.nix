@@ -1,7 +1,7 @@
 { pkgs ? import <nixpkgs> {}
 , system ? builtins.currentSystem
 , pythonPackages ? pkgs.python3Packages
-, nixComponents ? pkgs.nixVersions.nixComponents_2_29
+, nixComponents ? pkgs.nixVersions.nixComponents_2_31
 , forTest ? true
 , forDev ? true
 }:
@@ -43,6 +43,9 @@
       nixComponents.nix-main
       pythonPackages.pybind11
       pythonPackages.setuptools
+    ];
+    nativeBuildInputs = [
+      pkgs.pkg-config
     ];
     propagatedBuildInputs = [
       pythonPackages.humanfriendly
