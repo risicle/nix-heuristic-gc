@@ -1,7 +1,7 @@
 { pkgs ? import <nixpkgs> {}
 , system ? builtins.currentSystem
 , pythonPackages ? pkgs.python3Packages
-, nixComponents ? pkgs.nixVersions.nixComponents_2_31
+, nixComponents ? pkgs.nixVersions.nixComponents_2_35
 , forTest ? true
 , forDev ? true
 }:
